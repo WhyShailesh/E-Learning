@@ -61,8 +61,12 @@ const CourseDetail = () => {
 
           {/* LEFT */}
           <div className="flex gap-4">
-            <div className="w-28 h-20 bg-gray-200 rounded flex items-center justify-center text-xs">
-              Image
+            <div className="w-28 h-20 bg-gray-200 rounded flex items-center justify-center text-xs overflow-hidden shrink-0">
+              {course.image_url || course.thumbnail ? (
+                <img src={course.image_url || course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
+              ) : (
+                "No Image"
+              )}
             </div>
 
             <div>
@@ -77,8 +81,8 @@ const CourseDetail = () => {
           </div>
 
           {/* CENTER */}
-          <div className="text-center font-medium">
-            Cover Image
+          <div className="text-center font-medium hidden md:block">
+            {/* Visual spacer or additional stats could go here */}
           </div>
 
           {/* RIGHT (PROGRESS) */}

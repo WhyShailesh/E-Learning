@@ -15,6 +15,7 @@ import paymentRoutes from "./routes/paymentRoutes.js";
 import instructorRoutes from "./routes/instructorRoutes.js";
 import instructorSelfRoutes from "./routes/instructorSelfRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
+import uploadRoutes from "./routes/uploadRoutes.js";
 import pool from "./config/db.js";
 import { setupDatabase } from "./scripts/dbSetup.js";
 import { seedAdmin } from "./scripts/seedAdmin.js";
@@ -24,6 +25,8 @@ dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
+
+import path from 'path';
 
 // ── Security & Parsing ─────────────────────────────────────────────────────
 app.use(
@@ -40,9 +43,12 @@ app.use(
     credentials: true,
   })
 );
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: false })); // allow images to load
 app.use(express.json());
 app.use(morgan("dev"));
+
+// Serve local uploads
+app.use("/uploads", express.static(path.join(process.cwd(), "public", "uploads")));
 
 // ── Rate Limiting ──────────────────────────────────────────────────────────
 app.use("/api/", apiLimiter);
@@ -71,6 +77,7 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/instructors", instructorRoutes);
 app.use("/api/instructor", instructorSelfRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/upload", uploadRoutes);
 
 // ── Centralized Error Handler ──────────────────────────────────────────────
 app.use((err, _req, res, _next) => {

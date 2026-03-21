@@ -61,12 +61,31 @@ export const createCourse = (token: string, payload: any) =>
   request<any>("/courses", { method: "POST", token, body: payload }).then((r) => r.data ?? r);
 
 export const updateCourse = (token: string, id: string, payload: any) =>
-  request<any>(`/courses/${id}`, { method: "PUT", token, body: payload }).then((r) => r.data ?? r);
+  request<any>(`/courses/${id}`, { method: "PUT", token, body: payload }).then((r: any) => r.data ?? r);
+export const publishCourse = (token: string, id: string) =>
+  request<any>(`/courses/${id}/publish`, { method: "PATCH", token }).then((r: any) => r.data ?? r);
+
+// ── Uploads ────────────────────────────────────────────────────────────────
+export const uploadImage = (token: string, file: File) => {
+  const formData = new FormData();
+  formData.append("image", file);
+  // Custom fetch since request wrapper assumes JSON body
+  const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+  return fetch(`${BASE_URL}/upload`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  }).then(async (res) => {
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Failed to upload");
+    return data;
+  });
+};
 
 // ─── Lessons ──────────────────────────────────────────────────────────────────
 
 export const createLesson = (token: string, courseId: string, payload: any) =>
-  request<any>(`/courses/${courseId}/lessons`, { method: "POST", token, body: payload });
+  request<any>(`/courses/${courseId}/lessons`, { method: "POST", token, body: payload }).then((r) => r.data ?? r);
 
 export const updateLesson = (token: string, lessonId: number, payload: any) =>
   request<any>(`/lessons/${lessonId}`, { method: "PUT", token, body: payload });
@@ -154,6 +173,8 @@ export const api = {
   getInstructorCourses,
   createCourse,
   updateCourse,
+  publishCourse,
+  uploadImage,
   // Lessons
   createLesson,
   updateLesson,

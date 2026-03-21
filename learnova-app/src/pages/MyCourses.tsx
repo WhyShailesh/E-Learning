@@ -36,11 +36,11 @@ const MyCourses = () => {
                   style={{ animationDelay: `${i * 0.06}s` }}
                 >
                   <div className="aspect-video overflow-hidden">
-                    <img src={c.thumbnail} alt={c.title} className="h-full w-full object-cover" loading="lazy" />
+                   <img src={c.image_url || c.thumbnail || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800"} alt={c.title} className="h-full w-full object-cover" loading="lazy" />
                   </div>
                   <div className="p-5">
                     <h3 className="font-semibold text-foreground">{c.title}</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">{c.instructor}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{c.instructor_name}</p>
                     <div className="mt-4">
                       <div className="flex items-center justify-between mb-1.5">
                         <span className="text-xs text-muted-foreground">{progress.length}/{c.lessons.length} lessons</span>
@@ -50,7 +50,7 @@ const MyCourses = () => {
                         <div className="h-1.5 rounded-full bg-accent transition-all" style={{ width: `${pct}%` }} />
                       </div>
                     </div>
-                    <Link to={`/learner/courses/${c.id}/lesson/${progress.length < c.lessons.length ? Math.max(...progress, -1) + 1 : 0}`}>
+                    <Link to={`/learner/courses/${c.id}/lesson/${progress.length < c.lessons.length ? Math.max(...progress.map(Number), -1) + 1 : 0}`}>
                       <Button className="mt-4 w-full" size="sm">
                         <Play className="mr-1.5 h-4 w-4" />
                         {pct > 0 ? "Continue Learning" : "Start Learning"}

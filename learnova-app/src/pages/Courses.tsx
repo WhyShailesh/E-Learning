@@ -39,7 +39,7 @@ const Courses = () => {
                 style={{ animationDelay: `${i * 0.06}s` }}
               >
                 <div className="relative aspect-video overflow-hidden">
-                  <img src={c.thumbnail} alt={c.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+                  <img src={c.image_url || c.thumbnail || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800"} alt={c.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
                   {isCourseOwned(c.id) && (
                     <span className="absolute right-3 top-3 rounded-full bg-success px-2.5 py-0.5 text-xs font-medium text-success-foreground">Purchased</span>
                   )}

@@ -70,9 +70,9 @@ const Home = () => {
                 >
                   {/* Course Image / Thumbnail */}
                   <div className="h-32 bg-gray-200 rounded-md mb-3 overflow-hidden flex items-center justify-center">
-                    {c.thumbnail ? (
+                    {c.image_url || c.thumbnail ? (
                       <img
-                        src={c.thumbnail}
+                        src={c.image_url || c.thumbnail}
                         alt={c.title}
                         className="h-full w-full object-cover"
                         onError={(e) => { e.currentTarget.style.display = "none"; }}

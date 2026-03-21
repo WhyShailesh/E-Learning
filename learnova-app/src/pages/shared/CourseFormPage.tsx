@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/services/api";
@@ -37,7 +37,7 @@ interface Course {
   id: number;
   title: string;
   description?: string;
-  category?: string;
+  image_url?: string;
   level?: string;
   price?: number;
   thumbnail?: string;
@@ -91,7 +91,7 @@ export default function CourseFormPage() {
   // form fields
   const [title, setTitle]           = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory]     = useState("");
+  const [imageUrl, setImageUrl]     = useState("");
   const [level, setLevel]           = useState("");
   const [price, setPrice]           = useState<number>(0);
   const [thumbnail, setThumbnail]   = useState("");
@@ -161,7 +161,7 @@ export default function CourseFormPage() {
         setCourse(data);
         setTitle(data.title || "");
         setDescription(data.description || "");
-        setCategory(data.category || "");
+        setImageUrl(data.image_url || "");
         setLevel(data.level || "");
         setPrice(data.price ?? 0);
         setThumbnail(data.thumbnail || "");
@@ -183,7 +183,7 @@ export default function CourseFormPage() {
       await api.updateCourse(token, id, {
         title: title.trim(),
         description,
-        category,
+        image_url: imageUrl,
         level,
         price,
         thumbnail,
@@ -194,6 +194,26 @@ export default function CourseFormPage() {
       toast.error(err.message || "Save failed");
     } finally {
       setSaving(false);
+    }
+  };
+
+  // ── Image Uploads ───────────────────────────────────────────────────────────
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImagePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !token) return;
+    
+    setUploadingImage(true);
+    try {
+      const res = await api.uploadImage(token, file);
+      setImageUrl(res.url);
+      toast.success("Image uploaded");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to upload image");
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -416,14 +436,51 @@ export default function CourseFormPage() {
 
           <div className="space-y-1.5">
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              Category
+              Course Image
             </label>
-            <input
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-colors"
-              placeholder="e.g. Web Development"
-            />
+            <div className="relative flex h-[84px] w-full items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 overflow-hidden group transition-colors hover:border-indigo-400 hover:bg-indigo-50/50">
+              {uploadingImage ? (
+                <div className="flex flex-col items-center gap-1.5 text-indigo-500">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span className="text-[11px] font-medium">Uploading...</span>
+                </div>
+              ) : imageUrl ? (
+                <>
+                  <img src={imageUrl} alt="Course cover" className="h-full w-full object-cover" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 flex items-center justify-center gap-3">
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-gray-700 hover:text-indigo-600 hover:scale-110 transition-all shadow-lg"
+                      title="Change Image"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setImageUrl("")}
+                      className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-gray-700 hover:text-red-600 hover:scale-110 transition-all shadow-lg"
+                      title="Remove Image"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex flex-col items-center gap-1.5 text-gray-400 hover:text-indigo-500 transition-colors w-full h-full justify-center"
+                >
+                  <Image className="h-6 w-6" />
+                  <span className="text-[11px] font-medium">Upload Image</span>
+                </button>
+              )}
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleImagePick}
+              />
+            </div>
           </div>
         </div>
 
