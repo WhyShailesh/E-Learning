@@ -107,6 +107,28 @@ export async function setupDatabase() {
     );
   `);
 
+  // Dedicated instructors table
+  await run(`
+    CREATE TABLE IF NOT EXISTS instructors (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(100) NOT NULL,
+      email VARCHAR(100) UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      role VARCHAR(20) DEFAULT 'course_manager',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // Join table: which courses are assigned to which instructor
+  await run(`
+    CREATE TABLE IF NOT EXISTS instructor_courses (
+      instructor_id INTEGER NOT NULL REFERENCES instructors(id) ON DELETE CASCADE,
+      course_id INTEGER NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+      PRIMARY KEY (instructor_id, course_id)
+    );
+  `);
+
   // Compatibility columns used by current backend APIs.
   await run(`ALTER TABLE courses ADD COLUMN IF NOT EXISTS published BOOLEAN DEFAULT false;`);
   await run(`ALTER TABLE courses ADD COLUMN IF NOT EXISTS price INTEGER DEFAULT 0;`);
