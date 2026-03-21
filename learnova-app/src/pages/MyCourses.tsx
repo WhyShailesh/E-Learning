@@ -50,7 +50,7 @@ const MyCourses = () => {
                         <div className="h-1.5 rounded-full bg-accent transition-all" style={{ width: `${pct}%` }} />
                       </div>
                     </div>
-                    <Link to={`/learner/courses/${c.id}/lesson/${progress.length < c.lessons.length ? Math.max(...progress.map(Number), -1) + 1 : 0}`}>
+                    <Link to={`/learner/courses/${c.id}?lesson=${progress.length < c.lessons.length ? Math.max(...progress.map(Number), -1) + 1 : 0}`}>
                       <Button className="mt-4 w-full" size="sm">
                         <Play className="mr-1.5 h-4 w-4" />
                         {pct > 0 ? "Continue Learning" : "Start Learning"}

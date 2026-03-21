@@ -6,7 +6,7 @@ import { BookOpen, GraduationCap } from "lucide-react";
 
 const Home = () => {
   const { user } = useAuth();
-  const { courses, loadingCourses } = useCourses();
+  const { courses, loadingCourses, isCourseOwned } = useCourses();
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 p-6">
@@ -110,7 +110,11 @@ const Home = () => {
 
                   {/* Button */}
                   <div className="mt-4">
-                    {c.price > 0 ? (
+                    {isCourseOwned(c.id) ? (
+                      <Button className="w-full bg-green-600 hover:bg-green-700">
+                        Continue Course
+                      </Button>
+                    ) : c.price > 0 ? (
                       <Button className="w-full bg-purple-600 hover:bg-purple-700">
                         Buy Course ₹{c.price}
                       </Button>

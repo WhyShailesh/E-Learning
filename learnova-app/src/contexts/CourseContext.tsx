@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { api } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface Lesson {
   id: string;
@@ -113,10 +114,19 @@ export const CourseProvider = ({ children }: { children: ReactNode }) => {
   }, [token]);
 
   const purchaseCourse = async (courseId: string) => {
-    if (!token) return;
-    await api.enrollCourse(token, { course_id: courseId, payment_id: `demo_${Date.now()}` });
-    if (!purchasedCourses.includes(courseId)) {
-      setPurchased((prev) => [...prev, courseId]);
+    if (!token) {
+      toast.error("You must be logged in to enroll");
+      return;
+    }
+    try {
+      await api.enrollCourse(token, { course_id: courseId, payment_id: `demo_${Date.now()}` });
+      if (!purchasedCourses.includes(courseId)) {
+        setPurchased((prev) => [...prev, courseId]);
+      }
+      toast.success("Successfully enrolled in course!");
+    } catch (err: any) {
+      console.error("[CourseContext] Enrollment error:", err);
+      toast.error(err.response?.data?.message || err.message || "Failed to enroll in course");
     }
   };
 
