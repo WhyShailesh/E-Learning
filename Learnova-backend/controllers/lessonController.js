@@ -8,7 +8,7 @@ async function userOwnsCourse(userId, courseId) {
   const result = await pool.query(
     `SELECT 1 FROM courses WHERE id = $1 AND instructor_id = $2
      UNION
-     SELECT 1 FROM instructor_courses WHERE course_id = $1 AND user_id = $2
+     SELECT 1 FROM instructor_courses WHERE course_id = $1 AND (user_id = $2 OR instructor_id = $2)
      LIMIT 1`,
     [courseId, userId]
   );
@@ -20,7 +20,7 @@ export const getLessons = async (req, res) => {
   try {
     const courseId = req.params.courseId || req.params.id;
     const result = await pool.query(
-      `SELECT l.*,
+      `SELECT l.*, l.type AS content_type,
               lc.video_url, lc.document_url, lc.image_url, lc.allow_download
        FROM lessons l
        LEFT JOIN lesson_content lc ON lc.lesson_id = l.id
@@ -37,14 +37,17 @@ export const getLessons = async (req, res) => {
 // ── A3: POST /lessons ──────────────────────────────────────────────────────
 export const createLesson = async (req, res) => {
   try {
+    const course_id = req.params.courseId || req.params.id || req.body.course_id;
     const {
-      course_id,
       title,
-      type = "video",
+      type,
+      content_type,
       content_url = null,
       description = null,
       duration = 0,
     } = req.body;
+    
+    const finalType = type || content_type || "video";
 
     if (!course_id || !title) return fail(res, "course_id and title are required");
 
@@ -59,8 +62,8 @@ export const createLesson = async (req, res) => {
     const result = await pool.query(
       `INSERT INTO lessons (course_id, title, type, content_url, description, duration, created_by)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING *`,
-      [course_id, title, type, content_url, description, duration, req.user.id]
+       RETURNING *, type AS content_type`,
+      [course_id, title, finalType, content_url, description, duration, req.user.id]
     );
     return ok(res, result.rows[0], 201);
   } catch (err) {
@@ -68,11 +71,12 @@ export const createLesson = async (req, res) => {
   }
 };
 
-// ── A3: PUT /lessons/:id ───────────────────────────────────────────────────
 export const updateLesson = async (req, res) => {
   try {
     const lessonId = req.params.lessonId || req.params.id;
-    const { title, type, content_url, description, duration } = req.body;
+    const { title, type, content_type, content_url, description, duration } = req.body;
+    
+    const finalType = type || content_type;
 
     const lessonRes = await pool.query("SELECT * FROM lessons WHERE id = $1", [lessonId]);
     if (!lessonRes.rows.length) return fail(res, "Lesson not found", 404);
@@ -90,8 +94,8 @@ export const updateLesson = async (req, res) => {
            description = COALESCE($4, description),
            duration    = COALESCE($5, duration)
        WHERE id = $6
-       RETURNING *`,
-      [title, type, content_url, description, duration, lessonId]
+       RETURNING *, type AS content_type`,
+      [title, finalType, content_url, description, duration, lessonId]
     );
     return ok(res, result.rows[0]);
   } catch (err) {

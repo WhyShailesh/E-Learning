@@ -45,6 +45,17 @@ interface Course {
   lessons: Lesson[];
 }
 
+interface QuizQuestion {
+  id: number;
+  question_text: string;
+  options?: any[];
+}
+interface Quiz {
+  id: number;
+  title: string;
+  questions?: QuizQuestion[];
+}
+
 // ─── Content type icon ────────────────────────────────────────────────────────
 
 const TypeIcon = ({ type }: { type?: string }) => {
@@ -109,6 +120,39 @@ export default function CourseFormPage() {
   const [editUrl, setEditUrl]             = useState("");
   const [editDuration, setEditDuration]   = useState("");
 
+  // Quiz items
+  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [loadingQuizzes, setLoadingQuizzes] = useState(false);
+  const [newQuizTitle, setNewQuizTitle] = useState("");
+  const [addingQuiz, setAddingQuiz] = useState(false);
+
+  const [newQuestion, setNewQuestion] = useState("");
+  const [newOptions, setNewOptions] = useState([
+    { text: "", isCorrect: true },
+    { text: "", isCorrect: false },
+    { text: "", isCorrect: false },
+    { text: "", isCorrect: false },
+  ]);
+  const [addingQuestion, setAddingQuestion] = useState<{ [quizId: number]: boolean }>({});
+
+  const loadQuizzes = async (courseId: string) => {
+    setLoadingQuizzes(true);
+    try {
+      const qList = await api.getCourseQuizzes(courseId);
+      const data = qList;
+      if (Array.isArray(data)) {
+        const full = await Promise.all(
+          data.map((q: any) => api.getQuiz(String(q.id)).then((r: any) => r.data || r))
+        );
+        setQuizzes(full);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoadingQuizzes(false);
+    }
+  };
+
   // ── Load course ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!id) return;
@@ -127,6 +171,8 @@ export default function CourseFormPage() {
       })
       .catch(() => toast.error("Failed to load course"))
       .finally(() => setLoading(false));
+
+    loadQuizzes(id);
   }, [id]);
 
   // ── Save course ─────────────────────────────────────────────────────────────
@@ -148,6 +194,51 @@ export default function CourseFormPage() {
       toast.error(err.message || "Save failed");
     } finally {
       setSaving(false);
+    }
+  };
+
+  // ── Quiz Builders ───────────────────────────────────────────────────────────
+  const handleCreateQuiz = async () => {
+    if (!newQuizTitle.trim() || !token || !id) return;
+    setAddingQuiz(true);
+    try {
+      await api.createQuiz(token, { course_id: id, title: newQuizTitle.trim() });
+      toast.success("Quiz created");
+      setNewQuizTitle("");
+      loadQuizzes(id);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create quiz");
+    } finally {
+      setAddingQuiz(false);
+    }
+  };
+
+  const handleAddQuestion = async (quizId: number) => {
+    if (!newQuestion.trim() || !token) return toast.error("Question cannot be empty");
+    const validOptions = newOptions.filter((o) => o.text.trim());
+    if (validOptions.length < 2) return toast.error("Provide at least 2 options");
+    if (!validOptions.some((o) => o.isCorrect)) return toast.error("Select a correct option");
+
+    setAddingQuestion((prev) => ({ ...prev, [quizId]: true }));
+    try {
+      const qRes = await api.addQuizQuestion(token, { quiz_id: quizId, question_text: newQuestion.trim() });
+      const questionId = qRes.id;
+      for (const opt of validOptions) {
+        await api.addQuizOption(token, { question_id: questionId, option_text: opt.text.trim(), is_correct: opt.isCorrect });
+      }
+      toast.success("Question added");
+      setNewQuestion("");
+      setNewOptions([
+        { text: "", isCorrect: true },
+        { text: "", isCorrect: false },
+        { text: "", isCorrect: false },
+        { text: "", isCorrect: false },
+      ]);
+      loadQuizzes(id!);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to add question");
+    } finally {
+      setAddingQuestion((prev) => ({ ...prev, [quizId]: false }));
     }
   };
 
@@ -665,12 +756,107 @@ export default function CourseFormPage() {
 
         {/* ── Quiz Tab ─────────────────────────────────────────────────────── */}
         {tab === "quiz" && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <HelpCircle className="mb-3 h-10 w-10 text-gray-300" />
-            <p className="text-sm font-medium text-gray-500">Quiz Builder</p>
-            <p className="mt-1 text-xs text-gray-400 max-w-xs">
-              Quiz creation will be available soon. Use the existing quiz API for now.
-            </p>
+          <div className="p-5 space-y-6">
+            {loadingQuizzes ? (
+              <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-indigo-500" /></div>
+            ) : (
+              <div className="space-y-6">
+                {quizzes.length === 0 ? (
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-6 text-center">
+                    <HelpCircle className="mx-auto mb-3 h-8 w-8 text-gray-400" />
+                    <h3 className="text-sm font-medium text-gray-800">No quizzes yet</h3>
+                    <p className="mt-1 text-xs text-gray-500 mb-4">Create a quiz to test your learners' knowledge.</p>
+                  </div>
+                ) : (
+                  quizzes.map((quiz) => (
+                    <div key={quiz.id} className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                      <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                        <h3 className="text-sm font-semibold text-gray-800">{quiz.title}</h3>
+                      </div>
+                      <div className="p-4 space-y-4">
+                        {quiz.questions && quiz.questions.length > 0 ? (
+                          <div className="space-y-4">
+                            {quiz.questions.map((q, idx) => (
+                              <div key={q.id} className="rounded-lg border border-gray-100 p-3 bg-gray-50">
+                                <p className="text-sm font-medium text-gray-800">Q{idx + 1}. {q.question_text}</p>
+                                <div className="mt-2 space-y-1.5 pl-4">
+                                  {q.options?.map((opt: any) => (
+                                    <div key={opt.id} className={cn("text-xs px-2 py-1 rounded", opt.is_correct ? "bg-emerald-100 text-emerald-800" : "text-gray-600")}>
+                                      • {opt.option_text} {opt.is_correct && <Check className="inline h-3 w-3 ml-1" />}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-gray-500 italic">No questions added yet.</p>
+                        )}
+
+                        <div className="border-t border-gray-100 pt-4 mt-4">
+                          <h4 className="text-[13px] font-semibold text-gray-700 mb-3">Add Question</h4>
+                          <div className="space-y-3">
+                            <input
+                              value={newQuestion}
+                              onChange={(e) => setNewQuestion(e.target.value)}
+                              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-100"
+                              placeholder="Type your question here..."
+                            />
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              {newOptions.map((opt, oIdx) => (
+                                <div key={oIdx} className="flex items-center gap-2">
+                                  <input
+                                    type="radio"
+                                    name={`correct-opt-${quiz.id}`}
+                                    checked={opt.isCorrect}
+                                    onChange={() => setNewOptions(newOptions.map((o, idx) => ({ ...o, isCorrect: idx === oIdx })))}
+                                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
+                                  />
+                                  <input
+                                    value={opt.text}
+                                    onChange={(e) => setNewOptions(newOptions.map((o, idx) => idx === oIdx ? { ...o, text: e.target.value } : o))}
+                                    className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs focus:border-indigo-400 focus:outline-none"
+                                    placeholder={`Option ${oIdx + 1}`}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                            <button
+                              onClick={() => handleAddQuestion(quiz.id)}
+                              disabled={addingQuestion[quiz.id]}
+                              className="mt-2 flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+                            >
+                              {addingQuestion[quiz.id] ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+                              Save Question
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+
+                <div className="rounded-xl border border-dashed border-indigo-200 bg-indigo-50/50 p-4">
+                  <h4 className="text-[13px] font-semibold text-indigo-800 mb-2">Create New Quiz</h4>
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={newQuizTitle}
+                      onChange={(e) => setNewQuizTitle(e.target.value)}
+                      className="flex-1 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-200"
+                      placeholder="Quiz Title (e.g. End of Chapter 1)"
+                    />
+                    <button
+                      onClick={handleCreateQuiz}
+                      disabled={addingQuiz || !newQuizTitle.trim()}
+                      className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+                    >
+                      {addingQuiz ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                      Create
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

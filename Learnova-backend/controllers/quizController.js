@@ -1,3 +1,4 @@
+
 import pool from "../config/db.js";
 
 const ok   = (res, data, status = 200) => res.status(status).json({ success: true, data });
@@ -8,7 +9,7 @@ async function userOwnsCourse(userId, courseId) {
   const result = await pool.query(
     `SELECT 1 FROM courses WHERE id = $1 AND instructor_id = $2
      UNION
-     SELECT 1 FROM instructor_courses WHERE course_id = $1 AND user_id = $2
+     SELECT 1 FROM instructor_courses WHERE course_id = $1 AND (user_id = $2 OR instructor_id = $2)
      LIMIT 1`,
     [courseId, userId]
   );

@@ -10,7 +10,7 @@ import {
   getAttendees,
   addAttendee,
 } from "../controllers/courseController.js";
-import { getLessons } from "../controllers/lessonController.js";
+import { getLessons, createLesson } from "../controllers/lessonController.js";
 import { getQuizzesForCourse } from "../controllers/quizController.js";
 import { verifyToken, requireRole, authorizeRole, optionalAuth } from "../middleware/authMiddleware.js";
 
@@ -40,6 +40,7 @@ router.post("/:id/attendees",
 
 // ── Sub-resources nested under course ──────────────────────────────────────
 router.get("/:id/lessons", getLessons);
+router.post("/:id/lessons", verifyToken, authorizeRole("admin", "instructor"), createLesson);
 router.get("/:id/quizzes", getQuizzesForCourse);
 
 export default router;

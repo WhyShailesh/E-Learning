@@ -20,14 +20,7 @@ export const getMyCourses = async (req, res) => {
            (SELECT COUNT(*) FROM lessons l WHERE l.course_id = c.id), 0
          )::int AS total_lessons
        FROM courses c
-       WHERE c.instructor_id = $1
-          OR EXISTS (
-            SELECT 1 FROM instructor_courses ic
-            WHERE ic.course_id = c.id
-              AND (ic.user_id = $1 OR ic.instructor_id = $1)
-          )
-       ORDER BY c.id DESC`,
-      [req.user.id]
+       ORDER BY c.id DESC`
     );
     return ok(res, result.rows);
   } catch (err) {

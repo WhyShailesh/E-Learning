@@ -93,12 +93,24 @@ export const markProgress = (
 // ─── Quiz ─────────────────────────────────────────────────────────────────────
 
 export const getCourseQuizzes = (courseId: string) =>
-  request<any[]>(`/quiz/course/${courseId}`);
+  request<any[]>(`/quiz/course/${courseId}`).then((r: any) => r.data ?? r);
 
 export const submitQuiz = (
   token: string,
   payload: { quiz_id: string; answers: { option_id: string }[] }
 ) => request<any>("/quiz/submit", { method: "POST", token, body: payload });
+
+export const getQuiz = (id: string) =>
+  request<any>(`/quiz/${id}`);
+
+export const createQuiz = (token: string, payload: { course_id: string; title: string }) =>
+  request<any>("/quiz", { method: "POST", token, body: payload }).then((r) => r.data ?? r);
+
+export const addQuizQuestion = (token: string, payload: { quiz_id: number; question_text: string; order_index?: number }) =>
+  request<any>("/quiz/questions", { method: "POST", token, body: payload }).then((r) => r.data ?? r);
+
+export const addQuizOption = (token: string, payload: { question_id: number; option_text: string; is_correct: boolean }) =>
+  request<any>("/quiz/options", { method: "POST", token, body: payload }).then((r) => r.data ?? r);
 
 // ─── Dashboards ───────────────────────────────────────────────────────────────
 
@@ -154,6 +166,10 @@ export const api = {
   // Quiz
   getCourseQuizzes,
   submitQuiz,
+  getQuiz,
+  createQuiz,
+  addQuizQuestion,
+  addQuizOption,
   // Dashboards
   learnerDashboard,
   instructorDashboard,
@@ -164,4 +180,3 @@ export const api = {
   createInstructor,
   deleteInstructor,
 };
-
