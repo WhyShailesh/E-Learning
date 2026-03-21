@@ -44,7 +44,7 @@ export default function AdminCourses() {
     if (!newCourseName.trim() || !token) return;
     setCreating(true);
     try {
-      const created = await api.createCourse(token, { title: newCourseName.trim(), description: "", published: false });
+      const created = await api.createCourse(token, { title: newCourseName.trim(), description: "", published: true });
       setCourses((prev) => [created, ...prev]);
       setCreateOpen(false);
       setNewCourseName("");

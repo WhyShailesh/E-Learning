@@ -22,7 +22,7 @@ export default function AdminParticipants() {
     if (!token) return;
     const fetchParticipants = async () => {
       try {
-        const data = await (api as any).getParticipants?.(token);
+        const data = await api.getParticipants(token);
         if (Array.isArray(data)) setParticipants(data);
       } catch {
         setParticipants([]);

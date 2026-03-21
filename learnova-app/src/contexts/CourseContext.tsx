@@ -54,14 +54,18 @@ export const CourseProvider = ({ children }: { children: ReactNode }) => {
     const loadCourses = async () => {
       setLoadingCourses(true);
       try {
+        // Single request — getCourses already returns instructor_name and full row data.
+        // Lessons are loaded on-demand when a course detail page is visited.
         const result = await api.getCourses();
-        const withLessons = await Promise.all(
-          result.map(async (course) => {
-            const detail = await api.getCourseById(String(course.id));
-            return detail;
-          })
-        );
-        setCourses(withLessons);
+        const normalised = result.map((c) => ({
+          ...c,
+          id: String(c.id),
+          lessons: Array.isArray(c.lessons) ? c.lessons : [],
+        }));
+        console.log("[CourseContext] Loaded", normalised.length, "courses");
+        setCourses(normalised);
+      } catch (err) {
+        console.error("[CourseContext] Failed to load courses:", err);
       } finally {
         setLoadingCourses(false);
       }
@@ -70,9 +74,17 @@ export const CourseProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const refreshCourses = async () => {
-    const result = await api.getCourses();
-    const withLessons = await Promise.all(result.map((course) => api.getCourseById(String(course.id))));
-    setCourses(withLessons);
+    try {
+      const result = await api.getCourses();
+      const normalised = result.map((c) => ({
+        ...c,
+        id: String(c.id),
+        lessons: Array.isArray(c.lessons) ? c.lessons : [],
+      }));
+      setCourses(normalised);
+    } catch (err) {
+      console.error("[CourseContext] Failed to refresh courses:", err);
+    }
   };
 
   useEffect(() => {

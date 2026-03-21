@@ -47,21 +47,21 @@ export const me = (token: string) => request<any>("/auth/me", { token });
 
 // ─── Courses ─────────────────────────────────────────────────────────────────
 
-export const getCourses = () => request<any[]>("/courses");
+export const getCourses = () => request<any>("/courses").then((r) => r.data ?? r);
 
-export const getCourseById = (id: string) => request<any>(`/courses/${id}`);
+export const getCourseById = (id: string) => request<any>(`/courses/${id}`).then((r) => r.data ?? r);
 
 export const getCoursesAll = (token: string) =>
-  request<any[]>("/courses?includeAll=true", { token });
+  request<any>("/courses?includeAll=true", { token }).then((r) => r.data ?? r);
 
 export const getInstructorCourses = (token: string) =>
-  request<any[]>("/instructor/my-courses", { token });
+  request<any>("/instructor/my-courses", { token }).then((r) => r.data ?? r);
 
 export const createCourse = (token: string, payload: any) =>
-  request<any>("/courses", { method: "POST", token, body: payload });
+  request<any>("/courses", { method: "POST", token, body: payload }).then((r) => r.data ?? r);
 
 export const updateCourse = (token: string, id: string, payload: any) =>
-  request<any>(`/courses/${id}`, { method: "PUT", token, body: payload });
+  request<any>(`/courses/${id}`, { method: "PUT", token, body: payload }).then((r) => r.data ?? r);
 
 // ─── Lessons ──────────────────────────────────────────────────────────────────
 
@@ -77,7 +77,7 @@ export const deleteLesson = (token: string, lessonId: number) =>
 // ─── Learner ─────────────────────────────────────────────────────────────────
 
 export const getMyEnrollments = (token: string) =>
-  request<any[]>("/enrollments/me", { token });
+  request<any>("/enrollments/me", { token }).then((r) => r.data ?? r);
 
 export const enrollCourse = (token: string, payload: { course_id: string; payment_id?: string }) =>
   request<any>("/enrollments", { method: "POST", token, body: payload });
@@ -114,12 +114,15 @@ export const adminDashboard = (token: string) =>
 // ─── Instructors (admin only) ─────────────────────────────────────────────────
 
 export const getInstructors = (token: string) =>
-  request<any[]>("/instructors", { token });
+  request<any>("/instructors", { token }).then((r) => r.data ?? r);
+
+export const getParticipants = (token: string) =>
+  request<any>("/instructors/participants", { token }).then((r) => r.data ?? r);
 
 export const createInstructor = (
   token: string,
   payload: { name: string; email: string; password: string; courseIds?: number[] }
-) => request<any>("/instructors", { method: "POST", token, body: payload });
+) => request<any>("/instructors", { method: "POST", token, body: payload }).then((r) => r.data ?? r);
 
 export const deleteInstructor = (token: string, id: number) =>
   request<any>(`/instructors/${id}`, { method: "DELETE", token });
@@ -157,6 +160,7 @@ export const api = {
   adminDashboard,
   // Instructors
   getInstructors,
+  getParticipants,
   createInstructor,
   deleteInstructor,
 };

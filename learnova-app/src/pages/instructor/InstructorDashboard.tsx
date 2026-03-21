@@ -72,7 +72,7 @@ export default function InstructorDashboard() {
       const created = await api.createCourse(token, {
         title: newTitle.trim(),
         description: "",
-        published: false,
+        published: true,
       });
       toast.success("Course created");
       setCreateOpen(false);

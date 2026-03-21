@@ -17,9 +17,22 @@ export const learnerDashboard = async (req, res) => {
 
 export const instructorDashboard = async (req, res) => {
   try {
-    const courses = await pool.query("SELECT * FROM courses WHERE instructor_id = $1 ORDER BY id DESC", [
-      req.user.id,
-    ]);
+    // Fetch all courses for this instructor via all assignment pathways:
+    // 1. courses.instructor_id (direct)
+    // 2. instructor_courses.user_id (users-table instructors)
+    // 3. instructor_courses.instructor_id (instructors-table entries)
+    const courses = await pool.query(
+      `SELECT DISTINCT ON (c.id) c.*
+       FROM courses c
+       WHERE c.instructor_id = $1
+          OR EXISTS (
+            SELECT 1 FROM instructor_courses ic
+            WHERE ic.course_id = c.id
+              AND (ic.user_id = $1 OR ic.instructor_id = $1)
+          )
+       ORDER BY c.id DESC`,
+      [req.user.id]
+    );
     const courseIds = courses.rows.map((row) => row.id);
     let enrollments = [];
     if (courseIds.length) {

@@ -184,17 +184,13 @@ export default function CourseFormPage() {
         duration: newDuration,
         order_index: lessons.length + 1,
       };
-      // Try backend; gracefully fall back to local state if endpoint missing
-      let created: Lesson;
-      try {
-        created = await (api as any).createLesson(token, id, payload);
-      } catch {
-        created = { id: Date.now(), ...payload };
-      }
+      const created: Lesson = await api.createLesson(token, id, payload);
       setLessons((prev) => [...prev, created]);
       setAddOpen(false);
       setNewTitle(""); setNewType("video"); setNewUrl(""); setNewDuration("");
       toast.success("Content added");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to add lesson");
     } finally {
       setAddSaving(false);
     }
@@ -218,15 +214,14 @@ export default function CourseFormPage() {
       duration: editDuration,
     };
     try {
-      try {
-        await (api as any).updateLesson(token, editId, payload);
-      } catch { /* backend may not have this route yet */ }
+      await api.updateLesson(token, editId, payload);
       setLessons((prev) =>
         prev.map((l) => (l.id === editId ? { ...l, ...payload } : l))
       );
       toast.success("Content updated");
-    } finally {
       setEditId(null);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update lesson");
     }
   };
 
@@ -234,12 +229,12 @@ export default function CourseFormPage() {
   const handleDeleteLesson = async (lessonId: number) => {
     if (!window.confirm("Delete this content item?")) return;
     try {
-      try {
-        await (api as any).deleteLesson(token!, lessonId);
-      } catch { /* graceful degradation */ }
+      await api.deleteLesson(token!, lessonId);
       setLessons((prev) => prev.filter((l) => l.id !== lessonId));
       toast.success("Content deleted");
-    } catch { /* nothing */ }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete lesson");
+    }
   };
 
   // ── Render ──────────────────────────────────────────────────────────────────

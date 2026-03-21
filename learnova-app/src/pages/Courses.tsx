@@ -10,7 +10,7 @@ const Courses = () => {
   const filtered = courses.filter(
     (c) =>
       c.title.toLowerCase().includes(search.toLowerCase()) ||
-      c.category.toLowerCase().includes(search.toLowerCase())
+      (c.category ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -55,7 +55,7 @@ const Courses = () => {
                     <span className="text-lg font-bold text-foreground">₹{c.price}</span>
                     <div className="flex items-center gap-3 text-sm text-muted-foreground">
                       <span>⭐ {c.rating}</span>
-                      <span>{c.students.toLocaleString()} students</span>
+                      <span>{(c.students ?? 0).toLocaleString()} students</span>
                     </div>
                   </div>
                 </div>
