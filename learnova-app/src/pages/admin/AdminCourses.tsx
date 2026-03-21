@@ -5,6 +5,15 @@ import { api } from "@/services/api";
 import { Search, Pencil, Share2, Plus, GraduationCap, BookOpen, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export default function AdminCourses() {
   const { token } = useAuth();
@@ -13,6 +22,9 @@ export default function AdminCourses() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "published" | "draft">("all");
   const [loading, setLoading] = useState(true);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newCourseName, setNewCourseName] = useState("");
+  const [creating, setCreating] = useState(false);
 
   React.useEffect(() => {
     if (!token) return;
@@ -27,6 +39,23 @@ export default function AdminCourses() {
     if (filter === "draft") return matchSearch && !c.published;
     return matchSearch;
   });
+
+  const handleCreate = async () => {
+    if (!newCourseName.trim() || !token) return;
+    setCreating(true);
+    try {
+      const created = await api.createCourse(token, { title: newCourseName.trim(), description: "", published: false });
+      setCourses((prev) => [created, ...prev]);
+      setCreateOpen(false);
+      setNewCourseName("");
+      toast.success("Course created");
+      navigate(`/admin/courses/${created.id}`);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create course");
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const handleShare = (course: any) => {
     navigator.clipboard.writeText(`${window.location.origin}/learner/courses/${course.id}`);
@@ -44,7 +73,7 @@ export default function AdminCourses() {
           </p>
         </div>
         <button
-          onClick={() => navigate("/admin/courses/new")}
+          onClick={() => setCreateOpen(true)}
           className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-indigo-700 transition-colors shadow-sm"
         >
           <Plus className="h-4 w-4" />
@@ -108,7 +137,7 @@ export default function AdminCourses() {
             Create your first course to get started.
           </p>
           <button
-            onClick={() => navigate("/admin/courses/new")}
+            onClick={() => setCreateOpen(true)}
             className="mt-5 flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-[13px] font-semibold text-white hover:bg-indigo-700 transition-colors"
           >
             <Plus className="h-4 w-4" />
@@ -180,6 +209,31 @@ export default function AdminCourses() {
           ))}
         </div>
       )}
+
+      {/* Create Course Dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create New Course</DialogTitle>
+            <DialogDescription>Enter a name to get started. You can fill in the details on the next screen.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
+            <Input
+              autoFocus
+              value={newCourseName}
+              onChange={(e) => setNewCourseName(e.target.value)}
+              placeholder="Course name"
+              onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+              <Button onClick={handleCreate} disabled={!newCourseName.trim() || creating} className="bg-indigo-600 hover:bg-indigo-700">
+                {creating ? "Creating…" : "Create"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

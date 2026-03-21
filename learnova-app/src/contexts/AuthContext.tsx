@@ -3,6 +3,20 @@ import { api } from "@/services/api";
 
 export type UserRole = "admin" | "instructor" | "learner";
 
+// Maps legacy/alternate role names from the DB to canonical frontend roles
+const ROLE_MAP: Record<string, UserRole> = {
+  admin: "admin",
+  instructor: "instructor",
+  course_manager: "instructor", // legacy role name used in instructors table
+  learner: "learner",
+  student: "learner",
+};
+
+function normalizeRole(raw: string | undefined): UserRole {
+  if (!raw) return "learner";
+  return ROLE_MAP[raw.toLowerCase()] ?? "learner";
+}
+
 export interface User {
   id: string;
   name: string;
@@ -72,7 +86,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   ): Promise<boolean> => {
     try {
       const response = await api.signup({ name, email, password, role });
-      const safeUser = { ...response.user, role: response.user.role || "learner" };
+      const safeUser = { ...response.user, role: normalizeRole(response.user.role) };
       persistAuth(safeUser, response.token);
       return true;
     } catch {
@@ -83,7 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string): Promise<User | null> => {
     try {
       const response = await api.login({ email, password });
-      const safeUser = { ...response.user, role: response.user.role || "learner" };
+      const safeUser = { ...response.user, role: normalizeRole(response.user.role) };
       persistAuth(safeUser, response.token);
       return safeUser;
     } catch {

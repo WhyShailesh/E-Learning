@@ -54,11 +54,25 @@ export const getCourseById = (id: string) => request<any>(`/courses/${id}`);
 export const getCoursesAll = (token: string) =>
   request<any[]>("/courses?includeAll=true", { token });
 
+export const getInstructorCourses = (token: string) =>
+  request<any[]>("/instructor/my-courses", { token });
+
 export const createCourse = (token: string, payload: any) =>
   request<any>("/courses", { method: "POST", token, body: payload });
 
 export const updateCourse = (token: string, id: string, payload: any) =>
   request<any>(`/courses/${id}`, { method: "PUT", token, body: payload });
+
+// ─── Lessons ──────────────────────────────────────────────────────────────────
+
+export const createLesson = (token: string, courseId: string, payload: any) =>
+  request<any>(`/courses/${courseId}/lessons`, { method: "POST", token, body: payload });
+
+export const updateLesson = (token: string, lessonId: number, payload: any) =>
+  request<any>(`/lessons/${lessonId}`, { method: "PUT", token, body: payload });
+
+export const deleteLesson = (token: string, lessonId: number) =>
+  request<any>(`/lessons/${lessonId}`, { method: "DELETE", token });
 
 // ─── Learner ─────────────────────────────────────────────────────────────────
 
@@ -122,8 +136,13 @@ export const api = {
   getCourses,
   getCourseById,
   getCoursesAll,
+  getInstructorCourses,
   createCourse,
   updateCourse,
+  // Lessons
+  createLesson,
+  updateLesson,
+  deleteLesson,
   // Learner
   getMyEnrollments,
   enrollCourse,
@@ -141,3 +160,4 @@ export const api = {
   createInstructor,
   deleteInstructor,
 };
+

@@ -1,27 +1,26 @@
 import React, { useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Eye, BookOpen, Clock, Pencil, Share2, Plus, X } from "lucide-react";
-import { toast } from "sonner";
 import { api } from "@/services/api";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import {
+  BookOpen, Pencil, Share2, Plus, GraduationCap,
+  FileText, Loader2, CheckCircle2, Circle,
+} from "lucide-react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 interface CourseCard {
   id: string;
   title: string;
   description: string;
-  tags: string[];
-  views: number;
-  totalLessons: number;
-  totalDuration: string;
+  category?: string;
+  level?: string;
+  total_lessons: number;
   published: boolean;
 }
 
@@ -35,204 +34,258 @@ export default function InstructorDashboard() {
   const navigate = useNavigate();
   const outletContext = useOutletContext<OutletContext | null>();
   const search = outletContext?.search ?? "";
-  const viewMode = outletContext?.viewMode ?? "kanban";
 
-  const [courses, setCourses] = useState<CourseCard[]>([]);
+  const [courses, setCourses]     = useState<CourseCard[]>([]);
+  const [loading, setLoading]     = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
-  const [newCourseName, setNewCourseName] = useState("");
+  const [newTitle, setNewTitle]   = useState("");
+  const [creating, setCreating]   = useState(false);
 
   React.useEffect(() => {
     if (!token) return;
-    api.getCoursesAll(token).then((rows) => {
-      const normalized: CourseCard[] = rows.map((c: any) => ({
-        id: String(c.id),
-        title: c.title,
-        description: c.description || "",
-        tags: c.tags || (c.category ? [c.category] : []),
-        views: c.views || 0,
-        totalLessons: c.total_lessons ?? c.totalLessons ?? 0,
-        totalDuration: c.total_duration || c.totalDuration || "0m",
-        published: !!c.published,
-      }));
-      setCourses(normalized);
-    }).catch(() => {});
+    api.getInstructorCourses(token)
+      .then((rows: any[]) => {
+        setCourses(
+          rows.map((c) => ({
+            id: String(c.id),
+            title: c.title,
+            description: c.description || "",
+            category: c.category,
+            level: c.level,
+            total_lessons: c.total_lessons ?? 0,
+            published: !!c.published,
+          }))
+        );
+      })
+      .catch(() => toast.error("Failed to load courses"))
+      .finally(() => setLoading(false));
   }, [token]);
 
   const filtered = courses.filter((c) =>
     c.title.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleCreate = () => {
-    if (!newCourseName.trim() || !token) return;
-    api
-      .createCourse(token, { title: newCourseName.trim(), description: "", published: false })
-      .then((created) => {
-        const newCourse: CourseCard = {
-          id: String(created.id),
-          title: created.title,
-          description: created.description || "",
-          tags: [],
-          views: 0,
-          totalLessons: 0,
-          totalDuration: "0m",
-          published: false,
-        };
-        setCourses([newCourse, ...courses]);
-        setCreateOpen(false);
-        setNewCourseName("");
-        toast.success("Course created");
-        navigate(`/instructor/courses/${newCourse.id}`);
-      })
-      .catch((err) => toast.error(err.message));
+  const handleCreate = async () => {
+    if (!newTitle.trim() || !token) return;
+    setCreating(true);
+    try {
+      const created = await api.createCourse(token, {
+        title: newTitle.trim(),
+        description: "",
+        published: false,
+      });
+      toast.success("Course created");
+      setCreateOpen(false);
+      setNewTitle("");
+      navigate(`/instructor/courses/${created.id}`);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create course");
+    } finally {
+      setCreating(false);
+    }
   };
 
   const handleShare = (course: CourseCard) => {
-    const url = `${window.location.origin}/learner/courses/${course.id}`;
-    navigator.clipboard.writeText(url);
-    toast.success("Link copied to clipboard");
-  };
-
-  const removeTag = (courseId: string, tagToRemove: string) => {
-    setCourses((prev) =>
-      prev.map((c) =>
-        c.id === courseId ? { ...c, tags: c.tags.filter((t) => t !== tagToRemove) } : c
-      )
+    navigator.clipboard.writeText(
+      `${window.location.origin}/learner/courses/${course.id}`
     );
+    toast.success("Course link copied");
   };
 
-  return (
-    <div className="space-y-6">
+  // ── Loading skeleton ─────────────────────────────────────────────────────────
+  if (loading) {
+    return (
       <div className="space-y-3">
-        {filtered.map((course) => (
+        {[1, 2, 3].map((i) => (
           <div
-            key={course.id}
-            className="relative overflow-hidden rounded-xl border border-gray-700 bg-gray-800/50 p-5 transition-colors hover:border-gray-600"
-          >
-            {course.published && (
-              <div
-                className="absolute right-0 top-0 h-16 w-24 overflow-hidden"
-                style={{ transform: "translate(0, -50%) rotate(45deg) translate(0, 50%)" }}
-              >
-                <div className="flex h-full w-full items-center justify-center bg-green-500/90 text-[10px] font-semibold uppercase text-white shadow">
-                  Published
-                </div>
-              </div>
-            )}
+            key={i}
+            className="h-24 animate-pulse rounded-xl border border-gray-200 bg-gray-50"
+          />
+        ))}
+      </div>
+    );
+  }
 
-            <div className="flex flex-wrap items-center gap-4 sm:flex-nowrap">
-              <div className="min-w-0 flex-1">
-                <h3
-                  className="cursor-pointer text-base font-semibold text-blue-400 hover:text-blue-300"
-                  onClick={() => navigate(`/instructor/courses/${course.id}`)}
-                >
-                  {course.title}
-                </h3>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {course.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="inline-flex items-center gap-1 rounded-md bg-gray-700 px-2 py-0.5 text-xs text-gray-300"
-                    >
-                      {tag}
-                      <button
-                        type="button"
-                        onClick={() => removeTag(course.id, tag)}
-                        className="rounded p-0.5 hover:bg-gray-600 hover:text-white"
-                        aria-label={`Remove ${tag}`}
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div>
+  // ── Empty state ──────────────────────────────────────────────────────────────
+  if (courses.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-white py-20 text-center">
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+          <GraduationCap className="h-7 w-7 text-indigo-400" />
+        </div>
+        <p className="text-sm font-semibold text-gray-700">No courses assigned yet</p>
+        <p className="mt-1.5 text-xs text-gray-400 max-w-xs">
+          Ask your admin to assign courses to you, or create a new course below.
+        </p>
+        <button
+          onClick={() => setCreateOpen(true)}
+          className="mt-5 flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-[13px] font-semibold text-white hover:bg-indigo-700 transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          Create a Course
+        </button>
 
-              <div className="flex shrink-0 items-center gap-6 rounded-lg border border-gray-600 bg-gray-800/80 px-4 py-2">
-                <span className="flex items-center gap-1.5 text-sm text-gray-400">
-                  <Eye className="h-4 w-4" />
-                  {course.views}
-                </span>
-                <span className="flex items-center gap-1.5 text-sm text-gray-400">
-                  <BookOpen className="h-4 w-4" />
-                  {course.totalLessons} contents
-                </span>
-                <span className="flex items-center gap-1.5 text-sm text-gray-400">
-                  <Clock className="h-4 w-4" />
-                  {course.totalDuration}
-                </span>
-              </div>
-
-              <div className="flex shrink-0 gap-2">
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Create New Course</DialogTitle>
+              <DialogDescription>Give your course a title to get started.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 pt-1">
+              <Input
+                autoFocus
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="e.g. React for Beginners"
+                onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
                 <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleShare(course)}
-                  className="border-gray-600 bg-transparent text-gray-300 hover:bg-gray-700 hover:text-white"
+                  onClick={handleCreate}
+                  disabled={!newTitle.trim() || creating}
+                  className="bg-indigo-600 hover:bg-indigo-700"
                 >
-                  <Share2 className="mr-1.5 h-4 w-4" />
-                  Share
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate(`/instructor/courses/${course.id}`)}
-                  className="border-gray-600 bg-transparent text-gray-300 hover:bg-gray-700 hover:text-white"
-                >
-                  <Pencil className="mr-1.5 h-4 w-4" />
-                  Edit
+                  {creating ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : null}
+                  {creating ? "Creating…" : "Create"}
                 </Button>
               </div>
             </div>
-          </div>
-        ))}
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
+
+  // ── Course list ──────────────────────────────────────────────────────────────
+  return (
+    <div className="space-y-4">
+      {/* Header row */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-base font-bold text-gray-900">My Courses</h2>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {courses.length} course{courses.length !== 1 ? "s" : ""} assigned to you
+          </p>
+        </div>
+        <button
+          onClick={() => setCreateOpen(true)}
+          className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-[13px] font-semibold text-white hover:bg-indigo-700 transition-colors shadow-sm"
+        >
+          <Plus className="h-4 w-4" />
+          New Course
+        </button>
       </div>
 
+      {/* No search results */}
       {filtered.length === 0 && (
-        <div className="rounded-xl border border-dashed border-gray-600 bg-gray-800/30 p-12 text-center">
-          <p className="text-gray-500">No courses yet</p>
-          <Button
-            onClick={() => setCreateOpen(true)}
-            className="mt-4 bg-[#6366f1] hover:bg-[#5558e3]"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Create your first course
-          </Button>
+        <div className="flex flex-col items-center justify-center rounded-xl border border-gray-200 bg-white py-10 text-center">
+          <FileText className="mb-2 h-8 w-8 text-gray-300" />
+          <p className="text-sm text-gray-400">No courses match your search.</p>
         </div>
       )}
 
+      {/* Course cards */}
+      {filtered.map((course) => (
+        <div
+          key={course.id}
+          className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md sm:flex-row sm:items-center"
+        >
+          {/* Icon */}
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+            <BookOpen className="h-6 w-6 text-indigo-500" />
+          </div>
+
+          {/* Info */}
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3
+                className="cursor-pointer text-[14px] font-semibold text-gray-800 hover:text-indigo-600 transition-colors"
+                onClick={() => navigate(`/instructor/courses/${course.id}`)}
+              >
+                {course.title}
+              </h3>
+              {/* Published badge */}
+              {course.published ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Published
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500 ring-1 ring-gray-200">
+                  <Circle className="h-3 w-3" />
+                  Draft
+                </span>
+              )}
+            </div>
+
+            {/* Meta row */}
+            <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-gray-400">
+              {course.category && (
+                <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-600 ring-1 ring-inset ring-indigo-200">
+                  {course.category}
+                </span>
+              )}
+              {course.level && (
+                <span className="capitalize">{course.level}</span>
+              )}
+              <span>{course.total_lessons} lesson{course.total_lessons !== 1 ? "s" : ""}</span>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex shrink-0 gap-2">
+            <button
+              onClick={() => handleShare(course)}
+              className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-[12px] text-gray-600 hover:bg-gray-100 transition-colors"
+            >
+              <Share2 className="h-3.5 w-3.5" />
+              Share
+            </button>
+            <button
+              onClick={() => navigate(`/instructor/courses/${course.id}`)}
+              className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-indigo-700 transition-colors shadow-sm"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Edit
+            </button>
+          </div>
+        </div>
+      ))}
+
+      {/* FAB */}
       <button
         onClick={() => setCreateOpen(true)}
-        className="fixed bottom-8 left-8 flex h-14 w-14 items-center justify-center rounded-full bg-[#6366f1] text-white shadow-lg transition hover:scale-105 hover:bg-[#5558e3]"
+        className="fixed bottom-8 right-8 flex h-14 w-14 items-center justify-center rounded-full bg-indigo-600 text-white shadow-lg transition hover:scale-105 hover:bg-indigo-700"
         title="Create new course"
-        aria-label="Create new course"
       >
         <Plus className="h-7 w-7" />
       </button>
 
+      {/* Create dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="border-gray-700 bg-[#1a1d23] sm:max-w-md">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-white">Create Course</DialogTitle>
-            <DialogDescription className="text-gray-400">
-              Enter a name for your new course
-            </DialogDescription>
+            <DialogTitle>Create New Course</DialogTitle>
+            <DialogDescription>Give your course a title to get started.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 pt-2">
+          <div className="space-y-4 pt-1">
             <Input
-              value={newCourseName}
-              onChange={(e) => setNewCourseName(e.target.value)}
-              placeholder="Course name"
-              onKeyDown={(e) => e.key === "Enter" && handleCreate()}
               autoFocus
-              className="border-gray-600 bg-gray-800 text-white placeholder:text-gray-500"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              placeholder="e.g. React for Beginners"
+              onKeyDown={(e) => e.key === "Enter" && handleCreate()}
             />
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
               <Button
                 onClick={handleCreate}
-                disabled={!newCourseName.trim()}
-                className="bg-[#6366f1] hover:bg-[#5558e3]"
+                disabled={!newTitle.trim() || creating}
+                className="bg-indigo-600 hover:bg-indigo-700"
               >
-                Create
+                {creating ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : null}
+                {creating ? "Creating…" : "Create"}
               </Button>
             </div>
           </div>

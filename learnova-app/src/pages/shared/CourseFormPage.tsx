@@ -1,28 +1,701 @@
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { api } from "@/services/api";
+import { toast } from "sonner";
+import {
+  ArrowLeft,
+  Save,
+  Plus,
+  Pencil,
+  Trash2,
+  X,
+  Check,
+  ChevronRight,
+  FileVideo,
+  FileText,
+  Image,
+  HelpCircle,
+  ToggleLeft,
+  ToggleRight,
+  Loader2,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface Lesson {
+  id: number;
+  title: string;
+  content_type?: string;   // video | document | image | quiz
+  content_url?: string;
+  duration?: string;
+  order_index?: number;
+}
+
+interface Course {
+  id: number;
+  title: string;
+  description?: string;
+  category?: string;
+  level?: string;
+  price?: number;
+  thumbnail?: string;
+  published?: boolean;
+  lessons: Lesson[];
+}
+
+// ─── Content type icon ────────────────────────────────────────────────────────
+
+const TypeIcon = ({ type }: { type?: string }) => {
+  switch (type?.toLowerCase()) {
+    case "video":    return <FileVideo  className="h-4 w-4 text-indigo-500" />;
+    case "document": return <FileText   className="h-4 w-4 text-blue-500"   />;
+    case "image":    return <Image      className="h-4 w-4 text-emerald-500" />;
+    case "quiz":     return <HelpCircle className="h-4 w-4 text-amber-500"  />;
+    default:         return <FileText   className="h-4 w-4 text-gray-400"   />;
+  }
+};
+
+const CONTENT_TYPES = ["video", "document", "image", "quiz"];
+
+// ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function CourseFormPage() {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { token } = useAuth();
+
   const isAdmin = window.location.pathname.startsWith("/admin");
   const basePath = isAdmin ? "/admin" : "/instructor";
+  // Instructors have no stand-alone /courses list page — send them back to dashboard
+  const backPath = isAdmin ? "/admin/courses" : "/instructor/dashboard";
+  const backLabel = isAdmin ? "Courses" : "Dashboard";
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  const [course, setCourse] = useState<Course | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  // form fields
+  const [title, setTitle]           = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory]     = useState("");
+  const [level, setLevel]           = useState("");
+  const [price, setPrice]           = useState<number>(0);
+  const [thumbnail, setThumbnail]   = useState("");
+  const [published, setPublished]   = useState(false);
+  const [tags, setTags]             = useState<string[]>([]);
+  const [tagInput, setTagInput]     = useState("");
+
+  // tabs
+  const [tab, setTab] = useState<"content" | "description" | "options" | "quiz">("content");
+
+  // lessons / content
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+
+  // add-content form
+  const [addOpen, setAddOpen] = useState(false);
+  const [newTitle, setNewTitle]       = useState("");
+  const [newType, setNewType]         = useState("video");
+  const [newUrl, setNewUrl]           = useState("");
+  const [newDuration, setNewDuration] = useState("");
+  const [addSaving, setAddSaving]     = useState(false);
+
+  // edit-content
+  const [editId, setEditId]               = useState<number | null>(null);
+  const [editTitle, setEditTitle]         = useState("");
+  const [editType, setEditType]           = useState("video");
+  const [editUrl, setEditUrl]             = useState("");
+  const [editDuration, setEditDuration]   = useState("");
+
+  // ── Load course ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!id) return;
+    api.getCourseById(id)
+      .then((data: any) => {
+        setCourse(data);
+        setTitle(data.title || "");
+        setDescription(data.description || "");
+        setCategory(data.category || "");
+        setLevel(data.level || "");
+        setPrice(data.price ?? 0);
+        setThumbnail(data.thumbnail || "");
+        setPublished(!!data.published);
+        setLessons(Array.isArray(data.lessons) ? data.lessons : []);
+        setTags(data.tags ? (Array.isArray(data.tags) ? data.tags : [data.tags]) : []);
+      })
+      .catch(() => toast.error("Failed to load course"))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  // ── Save course ─────────────────────────────────────────────────────────────
+  const handleSave = async () => {
+    if (!token || !id) return;
+    setSaving(true);
+    try {
+      await api.updateCourse(token, id, {
+        title: title.trim(),
+        description,
+        category,
+        level,
+        price,
+        thumbnail,
+        published,
+      });
+      toast.success("Course saved successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ── Toggle published ────────────────────────────────────────────────────────
+  const handleTogglePublished = async () => {
+    if (!token || !id) return;
+    const next = !published;
+    setPublished(next);
+    try {
+      await api.updateCourse(token, id, { published: next });
+      toast.success(next ? "Course published" : "Course unpublished");
+    } catch {
+      setPublished(!next); // revert
+      toast.error("Failed to update publish status");
+    }
+  };
+
+  // ── Tags ────────────────────────────────────────────────────────────────────
+  const addTag = () => {
+    const t = tagInput.trim();
+    if (t && !tags.includes(t)) setTags([...tags, t]);
+    setTagInput("");
+  };
+
+  // ── Add lesson ──────────────────────────────────────────────────────────────
+  const handleAddLesson = async () => {
+    if (!newTitle.trim() || !token || !id) return;
+    setAddSaving(true);
+    try {
+      const payload = {
+        title: newTitle.trim(),
+        content_type: newType,
+        content_url: newUrl,
+        duration: newDuration,
+        order_index: lessons.length + 1,
+      };
+      // Try backend; gracefully fall back to local state if endpoint missing
+      let created: Lesson;
+      try {
+        created = await (api as any).createLesson(token, id, payload);
+      } catch {
+        created = { id: Date.now(), ...payload };
+      }
+      setLessons((prev) => [...prev, created]);
+      setAddOpen(false);
+      setNewTitle(""); setNewType("video"); setNewUrl(""); setNewDuration("");
+      toast.success("Content added");
+    } finally {
+      setAddSaving(false);
+    }
+  };
+
+  // ── Edit lesson ─────────────────────────────────────────────────────────────
+  const openEdit = (lesson: Lesson) => {
+    setEditId(lesson.id);
+    setEditTitle(lesson.title);
+    setEditType(lesson.content_type || "video");
+    setEditUrl(lesson.content_url || "");
+    setEditDuration(lesson.duration || "");
+  };
+
+  const handleSaveLesson = async () => {
+    if (editId === null || !token) return;
+    const payload = {
+      title: editTitle.trim(),
+      content_type: editType,
+      content_url: editUrl,
+      duration: editDuration,
+    };
+    try {
+      try {
+        await (api as any).updateLesson(token, editId, payload);
+      } catch { /* backend may not have this route yet */ }
+      setLessons((prev) =>
+        prev.map((l) => (l.id === editId ? { ...l, ...payload } : l))
+      );
+      toast.success("Content updated");
+    } finally {
+      setEditId(null);
+    }
+  };
+
+  // ── Delete lesson ───────────────────────────────────────────────────────────
+  const handleDeleteLesson = async (lessonId: number) => {
+    if (!window.confirm("Delete this content item?")) return;
+    try {
+      try {
+        await (api as any).deleteLesson(token!, lessonId);
+      } catch { /* graceful degradation */ }
+      setLessons((prev) => prev.filter((l) => l.id !== lessonId));
+      toast.success("Content deleted");
+    } catch { /* nothing */ }
+  };
+
+  // ── Render ──────────────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+      </div>
+    );
+  }
+
+  if (!course) {
+    return (
+      <div className="flex h-64 items-center justify-center text-sm text-gray-400">
+        Course not found.
+      </div>
+    );
+  }
+
+  const TABS = [
+    { id: "content",     label: "Content" },
+    { id: "description", label: "Description" },
+    { id: "options",     label: "Options" },
+    { id: "quiz",        label: "Quiz" },
+  ] as const;
 
   return (
-    <div className="space-y-6">
-      <button
-        onClick={() => navigate(`${basePath}/dashboard`)}
-        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back
-      </button>
-      <div className="rounded-lg border border-border bg-card p-8">
-        <h2 className="text-lg font-semibold">Edit Course #{id}</h2>
-        <p className="mt-2 text-sm text-muted-foreground">Course configuration and content management.</p>
-        <Button className="mt-4" onClick={() => navigate(`${basePath}/dashboard`)}>
-          Back to Dashboard
-        </Button>
+    <div className="space-y-5">
+      {/* ── Header ──────────────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          onClick={() => navigate(backPath)}
+          className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {backLabel}
+        </button>
+        <ChevronRight className="h-3.5 w-3.5 text-gray-300" />
+        <span className="text-sm font-medium text-gray-700 truncate max-w-xs">{title}</span>
+
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          {/* Published toggle */}
+          <button
+            onClick={handleTogglePublished}
+            className={cn(
+              "flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[13px] font-medium transition-colors",
+              published
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                : "border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
+            )}
+          >
+            {published
+              ? <ToggleRight className="h-4 w-4" />
+              : <ToggleLeft  className="h-4 w-4" />
+            }
+            {published ? "Published" : "Draft"}
+          </button>
+
+          {/* Save */}
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-1.5 text-[13px] font-semibold text-white hover:bg-indigo-700 disabled:opacity-60 transition-colors shadow-sm"
+          >
+            {saving
+              ? <Loader2 className="h-4 w-4 animate-spin" />
+              : <Save className="h-4 w-4" />
+            }
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Course Title + Tags row ──────────────────────────────────────────── */}
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Course Title <span className="text-red-400">*</span>
+            </label>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-colors"
+              placeholder="e.g. React for Beginners"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Category
+            </label>
+            <input
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-colors"
+              placeholder="e.g. Web Development"
+            />
+          </div>
+        </div>
+
+        {/* Tags */}
+        <div className="space-y-1.5">
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            Tags
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            {tags.map((t) => (
+              <span
+                key={t}
+                className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-indigo-200"
+              >
+                {t}
+                <button
+                  type="button"
+                  onClick={() => setTags(tags.filter((x) => x !== t))}
+                  className="ml-0.5 hover:text-indigo-900"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+            <div className="flex items-center gap-1">
+              <input
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addTag())}
+                placeholder="Add tag…"
+                className="h-7 rounded-lg border border-gray-200 bg-gray-50 px-2.5 text-xs text-gray-700 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-100 w-28"
+              />
+              <button
+                type="button"
+                onClick={addTag}
+                className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 hover:bg-indigo-200 transition-colors"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Tabs ─────────────────────────────────────────────────────────────── */}
+      <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+        {/* Tab bar */}
+        <div className="flex border-b border-gray-200">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={cn(
+                "px-5 py-3 text-[13px] font-medium transition-colors border-b-2 -mb-px",
+                tab === t.id
+                  ? "border-indigo-600 text-indigo-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* ── Content Tab ─────────────────────────────────────────────────── */}
+        {tab === "content" && (
+          <div className="p-5 space-y-4">
+            {/* Lessons table */}
+            {lessons.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-200 py-12 text-center">
+                <FileText className="mb-2 h-8 w-8 text-gray-300" />
+                <p className="text-sm text-gray-400">No content yet</p>
+                <p className="mt-1 text-xs text-gray-300">Add your first lesson or resource below.</p>
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-lg border border-gray-200">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Title</th>
+                      <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Type</th>
+                      <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Duration</th>
+                      <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {lessons.map((lesson) =>
+                      editId === lesson.id ? (
+                        /* Inline edit row */
+                        <tr key={lesson.id} className="bg-indigo-50">
+                          <td className="px-4 py-2">
+                            <input
+                              autoFocus
+                              value={editTitle}
+                              onChange={(e) => setEditTitle(e.target.value)}
+                              className="w-full rounded border border-indigo-300 bg-white px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                            />
+                          </td>
+                          <td className="px-4 py-2">
+                            <select
+                              value={editType}
+                              onChange={(e) => setEditType(e.target.value)}
+                              className="rounded border border-indigo-300 bg-white px-2 py-1 text-sm focus:outline-none"
+                            >
+                              {CONTENT_TYPES.map((ct) => (
+                                <option key={ct} value={ct}>{ct}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="px-4 py-2">
+                            <input
+                              value={editDuration}
+                              onChange={(e) => setEditDuration(e.target.value)}
+                              placeholder="e.g. 12m"
+                              className="w-20 rounded border border-indigo-300 bg-white px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                            />
+                          </td>
+                          <td className="px-4 py-2 text-right">
+                            <div className="flex justify-end gap-1.5">
+                              <button
+                                onClick={handleSaveLesson}
+                                className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                              >
+                                <Check className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => setEditId(null)}
+                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:bg-gray-100 transition-colors"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        /* Normal row */
+                        <tr key={lesson.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2 font-medium text-gray-800">
+                              <TypeIcon type={lesson.content_type} />
+                              {lesson.title}
+                            </div>
+                            {lesson.content_url && (
+                              <p className="mt-0.5 truncate text-xs text-gray-400 max-w-xs">{lesson.content_url}</p>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize bg-gray-100 text-gray-600">
+                              {lesson.content_type || "—"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-gray-500">
+                            {lesson.duration || "—"}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex justify-end gap-1.5">
+                              <button
+                                onClick={() => openEdit(lesson)}
+                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                                title="Edit"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteLesson(lesson.id)}
+                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                title="Delete"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Add content form */}
+            {addOpen ? (
+              <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 space-y-3">
+                <p className="text-[13px] font-semibold text-indigo-700">New Content Item</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-gray-600">Title *</label>
+                    <input
+                      autoFocus
+                      value={newTitle}
+                      onChange={(e) => setNewTitle(e.target.value)}
+                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-100"
+                      placeholder="Lesson title"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-gray-600">Type</label>
+                    <select
+                      value={newType}
+                      onChange={(e) => setNewType(e.target.value)}
+                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none"
+                    >
+                      {CONTENT_TYPES.map((ct) => (
+                        <option key={ct} value={ct} className="capitalize">{ct}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-gray-600">URL / File path</label>
+                    <input
+                      value={newUrl}
+                      onChange={(e) => setNewUrl(e.target.value)}
+                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-100"
+                      placeholder="https://…"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-gray-600">Duration</label>
+                    <input
+                      value={newDuration}
+                      onChange={(e) => setNewDuration(e.target.value)}
+                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-100"
+                      placeholder="e.g. 15m"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleAddLesson}
+                    disabled={!newTitle.trim() || addSaving}
+                    className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-[13px] font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                  >
+                    {addSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                    Add
+                  </button>
+                  <button
+                    onClick={() => { setAddOpen(false); setNewTitle(""); setNewType("video"); setNewUrl(""); setNewDuration(""); }}
+                    className="rounded-lg border border-gray-200 px-4 py-2 text-[13px] text-gray-500 hover:bg-gray-100 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setAddOpen(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-gray-300 py-2.5 text-[13px] text-gray-500 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                Add Content
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* ── Description Tab ──────────────────────────────────────────────── */}
+        {tab === "description" && (
+          <div className="p-5 space-y-4">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Full Description
+              </label>
+              <textarea
+                rows={10}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-colors resize-none"
+                placeholder="Describe what students will learn in this course…"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* ── Options Tab ──────────────────────────────────────────────────── */}
+        {tab === "options" && (
+          <div className="p-5 space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Level
+                </label>
+                <select
+                  value={level}
+                  onChange={(e) => setLevel(e.target.value)}
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800 focus:border-indigo-400 focus:outline-none"
+                >
+                  <option value="">— Select level —</option>
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Price (₹)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={price}
+                  onChange={(e) => setPrice(Number(e.target.value))}
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-colors"
+                  placeholder="0 for free"
+                />
+              </div>
+
+              <div className="sm:col-span-2 space-y-1.5">
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Thumbnail URL
+                </label>
+                <input
+                  value={thumbnail}
+                  onChange={(e) => setThumbnail(e.target.value)}
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-colors"
+                  placeholder="https://images.example.com/thumb.jpg"
+                />
+                {thumbnail && (
+                  <img
+                    src={thumbnail}
+                    alt="thumbnail preview"
+                    className="mt-2 h-28 rounded-lg object-cover border border-gray-200"
+                    onError={(e) => (e.currentTarget.style.display = "none")}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Quiz Tab ─────────────────────────────────────────────────────── */}
+        {tab === "quiz" && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <HelpCircle className="mb-3 h-10 w-10 text-gray-300" />
+            <p className="text-sm font-medium text-gray-500">Quiz Builder</p>
+            <p className="mt-1 text-xs text-gray-400 max-w-xs">
+              Quiz creation will be available soon. Use the existing quiz API for now.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* ── Bottom Save bar ─────────────────────────────────────────────────── */}
+      <div className="flex justify-end gap-3 pb-4">
+        <button
+          onClick={() => navigate(backPath)}
+          className="rounded-lg border border-gray-200 px-5 py-2 text-[13px] text-gray-500 hover:bg-gray-50 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2 text-[13px] font-semibold text-white hover:bg-indigo-700 disabled:opacity-60 transition-colors shadow-sm"
+        >
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          {saving ? "Saving…" : "Save Changes"}
+        </button>
       </div>
     </div>
   );

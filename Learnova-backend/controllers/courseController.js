@@ -14,7 +14,19 @@ export const createCourse = async (req, res) => {
       [title, description || "", req.user.id, price, thumbnail, category, level, published]
     );
 
-    res.status(201).json(result.rows[0]);
+    const course = result.rows[0];
+
+    // If created by an instructor (stored in instructors table),
+    // link the new course to them in instructor_courses so ownership works.
+    if (req.user.role === "instructor") {
+      await pool.query(
+        `INSERT INTO instructor_courses (instructor_id, course_id)
+         VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+        [req.user.id, course.id]
+      );
+    }
+
+    res.status(201).json(course);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -67,9 +79,16 @@ export const updateCourse = async (req, res) => {
     const check = await pool.query("SELECT * FROM courses WHERE id = $1", [id]);
     if (!check.rows.length) return res.status(404).json({ message: "Course not found" });
 
-    const course = check.rows[0];
-    if (req.user.role !== "admin" && course.instructor_id !== req.user.id) {
-      return res.status(403).json({ message: "You can only update your own course" });
+    // Admins can edit any course.
+    // Instructors can only edit courses linked to them in instructor_courses.
+    if (req.user.role === "instructor") {
+      const ownership = await pool.query(
+        "SELECT 1 FROM instructor_courses WHERE instructor_id = $1 AND course_id = $2",
+        [req.user.id, id]
+      );
+      if (ownership.rowCount === 0) {
+        return res.status(403).json({ message: "Access denied: you do not own this course" });
+      }
     }
 
     const { title, description, price, thumbnail, category, level, published } = req.body;
@@ -98,9 +117,15 @@ export const deleteCourse = async (req, res) => {
     const check = await pool.query("SELECT * FROM courses WHERE id = $1", [id]);
     if (!check.rows.length) return res.status(404).json({ message: "Course not found" });
 
-    const course = check.rows[0];
-    if (req.user.role !== "admin" && course.instructor_id !== req.user.id) {
-      return res.status(403).json({ message: "You can only delete your own course" });
+    // Same ownership check as updateCourse — use instructor_courses table.
+    if (req.user.role === "instructor") {
+      const ownership = await pool.query(
+        "SELECT 1 FROM instructor_courses WHERE instructor_id = $1 AND course_id = $2",
+        [req.user.id, id]
+      );
+      if (ownership.rowCount === 0) {
+        return res.status(403).json({ message: "Access denied: you do not own this course" });
+      }
     }
 
     await pool.query("DELETE FROM courses WHERE id = $1", [id]);

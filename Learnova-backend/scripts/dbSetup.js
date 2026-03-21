@@ -114,7 +114,7 @@ export async function setupDatabase() {
       name VARCHAR(100) NOT NULL,
       email VARCHAR(100) UNIQUE NOT NULL,
       password TEXT NOT NULL,
-      role VARCHAR(20) DEFAULT 'course_manager',
+      role VARCHAR(20) DEFAULT 'instructor',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
@@ -146,6 +146,9 @@ export async function setupDatabase() {
 
   await run(`CREATE UNIQUE INDEX IF NOT EXISTS enrollments_user_course_uidx ON enrollments(user_id, course_id);`);
   await run(`CREATE UNIQUE INDEX IF NOT EXISTS progress_user_lesson_uidx ON progress(user_id, lesson_id);`);
+
+  // Fix legacy role value: course_manager → instructor
+  await run(`UPDATE instructors SET role = 'instructor' WHERE role = 'course_manager';`);
 
   // Keep is_published and published in sync for mixed query usage.
   await run(`

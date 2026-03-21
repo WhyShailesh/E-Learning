@@ -13,6 +13,7 @@ import progressRoutes from "./routes/progressRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import instructorRoutes from "./routes/instructorRoutes.js";
+import instructorSelfRoutes from "./routes/instructorSelfRoutes.js";
 import pool from "./config/db.js";
 import { setupDatabase } from "./scripts/dbSetup.js";
 
@@ -45,6 +46,8 @@ app.use("/api/progress", progressRoutes);
 app.use("/api/dashboards", dashboardRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/instructors", instructorRoutes);
+app.use("/api/instructor", instructorSelfRoutes);
+
 
 app.use((err, _req, res, _next) => {
   console.error("[SERVER] Unhandled error:", err);

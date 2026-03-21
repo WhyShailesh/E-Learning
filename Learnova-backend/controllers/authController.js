@@ -36,7 +36,7 @@ export const signup = async (req, res) => {
   }
 };
 
-// LOGIN
+// LOGIN — checks both `users` table and `instructors` table
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -44,40 +44,72 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "email and password are required" });
     }
 
-    const user = await pool.query(
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // 1. Check regular users table first
+    let userRow = null;
+    const userResult = await pool.query(
       "SELECT * FROM users WHERE email = $1",
-      [email.toLowerCase()]
+      [normalizedEmail]
     );
-
-    if (user.rows.length === 0) {
-      return res.status(400).json({ message: "User not found" });
+    if (userResult.rows.length > 0) {
+      userRow = userResult.rows[0];
     }
 
-    const valid = await bcrypt.compare(password, user.rows[0].password);
+    // 2. If not found in users, check instructors table
+    if (!userRow) {
+      const instructorResult = await pool.query(
+        "SELECT * FROM instructors WHERE email = $1",
+        [normalizedEmail]
+      );
+      if (instructorResult.rows.length > 0) {
+        userRow = instructorResult.rows[0];
+      }
+    }
 
+    // 3. No match in either table
+    if (!userRow) {
+      return res.status(400).json({ message: "Wrong username or password" });
+    }
+
+    // 4. Compare password
+    const valid = await bcrypt.compare(password, userRow.password);
     if (!valid) {
-      return res.status(400).json({ message: "Invalid password" });
+      return res.status(400).json({ message: "Wrong username or password" });
     }
 
-    const token = signToken(user.rows[0]);
-
-    const { password: _pw, ...safeUser } = user.rows[0];
+    // 5. Sign token and return safe user object
+    const token = signToken(userRow);
+    const { password: _pw, ...safeUser } = userRow;
     res.json({ token, user: safeUser });
   } catch (err) {
+    console.error("[auth] login error:", err.message);
     res.status(500).json({ error: err.message });
   }
 };
 
 export const getMe = async (req, res) => {
   try {
-    const result = await pool.query("SELECT id, name, email, role FROM users WHERE id = $1", [
-      req.user.id,
-    ]);
-    if (!result.rows.length) {
-      return res.status(404).json({ message: "User not found" });
+    // First check users table (admin, learner)
+    const userResult = await pool.query(
+      "SELECT id, name, email, role FROM users WHERE id = $1",
+      [req.user.id]
+    );
+    if (userResult.rows.length) {
+      return res.json(userResult.rows[0]);
     }
-    res.json(result.rows[0]);
+
+    // Then check instructors table (instructor accounts)
+    const instructorResult = await pool.query(
+      "SELECT id, name, email, role FROM instructors WHERE id = $1",
+      [req.user.id]
+    );
+    if (instructorResult.rows.length) {
+      return res.json(instructorResult.rows[0]);
+    }
+
+    return res.status(404).json({ message: "User not found" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-};
+};

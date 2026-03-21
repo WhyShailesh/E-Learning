@@ -1,6 +1,9 @@
 import jwt from "jsonwebtoken";
 
 
+// Maps legacy DB role names to canonical roles
+const ROLE_ALIASES = { course_manager: "instructor" };
+
 export const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
   const token = authHeader?.startsWith("Bearer ")
@@ -11,6 +14,8 @@ export const verifyToken = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Normalize legacy role names so all downstream checks use canonical roles
+    decoded.role = ROLE_ALIASES[decoded.role] ?? decoded.role;
     req.user = decoded;
     next();
   } catch {

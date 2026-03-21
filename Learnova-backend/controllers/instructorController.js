@@ -1,7 +1,30 @@
 import pool from "../config/db.js";
 import bcrypt from "bcrypt";
 
-// GET /api/instructors — list all instructors with assigned courses
+// GET /api/instructor/my-courses — courses assigned to the logged-in instructor
+export const getMyCourses = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT
+         c.id, c.title, c.description, c.category, c.level,
+         c.price, c.thumbnail, c.published, c.created_at,
+         COALESCE(
+           (SELECT COUNT(*) FROM lessons l WHERE l.course_id = c.id), 0
+         )::int AS total_lessons
+       FROM courses c
+       INNER JOIN instructor_courses ic ON ic.course_id = c.id
+       WHERE ic.instructor_id = $1
+       ORDER BY c.id DESC`,
+      [req.user.id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("[instructor] getMyCourses error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// GET /api/instructors — list all instructors with assigned courses (admin only)
 export const getInstructors = async (req, res) => {
   try {
     const result = await pool.query(
@@ -54,7 +77,7 @@ export const createInstructor = async (req, res) => {
 
     const insertResult = await pool.query(
       `INSERT INTO instructors (name, email, password, role)
-       VALUES ($1, $2, $3, 'course_manager')
+       VALUES ($1, $2, $3, 'instructor')
        RETURNING id, name, email, role, created_at`,
       [name.trim(), email.toLowerCase(), hashedPassword]
     );
