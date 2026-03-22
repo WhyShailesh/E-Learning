@@ -182,6 +182,25 @@ export const createCourse = async (req, res) => {
 
     if (!title) return fail(res, "title is required");
 
+    let actualUserId = null;
+    let actualInstructorTableId = null;
+
+    if (req.user.email) {
+      const userCheck = await pool.query("SELECT id FROM users WHERE email = $1", [req.user.email]);
+      if (userCheck.rows.length) {
+        actualUserId = userCheck.rows[0].id;
+      } else {
+        const instCheck = await pool.query("SELECT id FROM instructors WHERE email = $1", [req.user.email]);
+        if (instCheck.rows.length) {
+          actualInstructorTableId = instCheck.rows[0].id;
+        }
+      }
+    } else {
+      actualUserId = req.user.id;
+    }
+
+    const instructorIdValue = actualUserId || null;
+
     const result = await pool.query(
       `INSERT INTO courses
          (title, description, instructor_id, price, image_url, level,
@@ -190,20 +209,28 @@ export const createCourse = async (req, res) => {
        VALUES ($1,$2,$3,$4,$5,$6,$7,$7,$8,0,$9,$10,$11,$12,$13,$3)
        RETURNING *`,
       [
-        title, description, req.user.id, price, image_url, level,
+        title, description, instructorIdValue, price, image_url, level,
         published, tags, visibility, access_rule, course_image, website_id, responsible_id,
       ]
     );
 
     const course = result.rows[0];
 
-    // Link to instructor_courses join table using user_id column
-    if (req.user.role === "instructor") {
-      await pool.query(
-        `INSERT INTO instructor_courses (user_id, course_id)
-         VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-        [req.user.id, course.id]
-      );
+    // Link to instructor_courses join table cleanly matching the correct source table
+    if (req.user.role === "instructor" || req.user.role === "admin") {
+      if (actualUserId) {
+         await pool.query(
+           `INSERT INTO instructor_courses (user_id, course_id)
+            VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+           [actualUserId, course.id]
+         );
+      } else if (actualInstructorTableId) {
+         await pool.query(
+           `INSERT INTO instructor_courses (instructor_id, course_id)
+            VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+           [actualInstructorTableId, course.id]
+         );
+      }
     }
 
     return ok(res, course, 201);
