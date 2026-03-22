@@ -1,4 +1,4 @@
-# Learnova — E-Learning Management System
+# Learnova - E-Learning Management System
 
 A modern, full-stack Learning Management System (LMS) designed for scalable course delivery with role-based access for Learners, Instructors, and Administrators.
 
