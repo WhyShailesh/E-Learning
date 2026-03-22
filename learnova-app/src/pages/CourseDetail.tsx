@@ -519,8 +519,8 @@ const CourseOverviewLanding = ({ course, purchaseCourse }: any) => {
           
           <div className="flex gap-6 col-span-2">
             <div className="w-40 h-28 bg-gray-200 rounded-lg flex items-center justify-center text-xs overflow-hidden shrink-0 shadow-inner">
-              {course.image_url || course.thumbnail ? (
-                <img src={course.image_url || course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
+              {course.image_url ? (
+                <img src={course.image_url} alt={course.title} className="w-full h-full object-cover" />
               ) : (
                 "No Image"
               )}
@@ -543,14 +543,27 @@ const CourseOverviewLanding = ({ course, purchaseCourse }: any) => {
 
           <div className="flex flex-col items-center justify-center border-l pl-8">
             <p className="text-3xl font-bold text-gray-900 mb-4">
-              {course.price > 0 ? `₹${course.price}` : 'Free'}
+              {course.access_rule === 'open' 
+                ? 'Free' 
+                : course.access_rule === 'on-invitation' 
+                  ? 'Private' 
+                  : `₹${course.price || 0}`}
             </p>
-            <button
-              className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-lg font-medium w-full shadow-md transition-colors"
-              onClick={() => purchaseCourse(String(course.id))}
-            >
-              Enroll Now
-            </button>
+            {course.access_rule === 'on-invitation' ? (
+              <button
+                disabled
+                className="bg-gray-200 text-gray-400 px-8 py-3 rounded-lg font-medium w-full cursor-not-allowed"
+              >
+                Invitation Only
+              </button>
+            ) : (
+              <button
+                className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-lg font-medium w-full shadow-md transition-colors"
+                onClick={() => purchaseCourse(String(course.id))}
+              >
+                {course.access_rule === 'on-payment' ? 'Buy Now' : 'Enroll Now'}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -637,6 +650,29 @@ const CourseDetail = () => {
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
           <p className="text-gray-500 font-medium">Loading course details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Enforce visibility constraint
+  if (course.visibility === 'signed-in' && !user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+        <div className="bg-white p-10 rounded-3xl shadow-xl shadow-indigo-900/5 max-w-lg w-full text-center border border-gray-100">
+          <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Lock className="w-10 h-10 text-indigo-500" />
+          </div>
+          <h2 className="text-3xl font-extrabold text-gray-900 mb-4 tracking-tight">Members Only</h2>
+          <p className="text-gray-500 mb-8 leading-relaxed">
+            This course requires a Learnova account. Please sign in or create an account to view the curriculum and enroll.
+          </p>
+          <a
+            href="/login"
+            className="inline-block w-full bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3.5 rounded-xl font-bold shadow-md shadow-indigo-600/20 transition-all hover:-translate-y-0.5"
+          >
+            Sign In to Access
+          </a>
         </div>
       </div>
     );

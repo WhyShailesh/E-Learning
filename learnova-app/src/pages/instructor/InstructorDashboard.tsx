@@ -56,7 +56,7 @@ export default function InstructorDashboard() {
             level: c.level,
             total_lessons: c.total_lessons ?? 0,
             published: !!c.published,
-            image_url: c.image_url || c.thumbnail,
+            image_url: c.image_url,
           }))
         );
       })

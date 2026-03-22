@@ -3,7 +3,7 @@ import pool from "../config/db.js";
 export const learnerDashboard = async (req, res) => {
   try {
     const myCourses = await pool.query(
-      `SELECT e.course_id, e.status, c.title, c.thumbnail, c.description
+      `SELECT e.course_id, e.status, c.title, c.description
        FROM enrollments e
        JOIN courses c ON c.id = e.course_id
        WHERE e.user_id = $1`,

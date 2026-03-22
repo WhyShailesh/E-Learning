@@ -62,9 +62,9 @@ const MyCourses = () => {
                   {/* Course Image */}
                   <div className="relative h-48 rounded-2xl mb-6 overflow-hidden bg-gray-50 shadow-inner flex items-center justify-center">
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent z-10 opacity-60 transition-opacity duration-300" />
-                    {c.image_url || c.thumbnail ? (
+                    {c.image_url ? (
                       <img
-                        src={c.image_url || c.thumbnail}
+                        src={c.image_url}
                         alt={c.title}
                         className="h-full w-full object-cover transform group-hover:scale-105 transition-transform duration-500"
                         onError={(e) => { e.currentTarget.style.display = "none"; }}

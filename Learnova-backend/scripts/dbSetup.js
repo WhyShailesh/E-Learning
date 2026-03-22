@@ -160,7 +160,6 @@ export async function setupDatabase() {
   // ── A1-A5: Extended course columns ───────────────────────────────────────
   await run(`ALTER TABLE courses ADD COLUMN IF NOT EXISTS published BOOLEAN DEFAULT false;`);
   await run(`ALTER TABLE courses ADD COLUMN IF NOT EXISTS price INTEGER DEFAULT 0;`);
-  await run(`ALTER TABLE courses ADD COLUMN IF NOT EXISTS thumbnail TEXT;`);
   await run(`ALTER TABLE courses ADD COLUMN IF NOT EXISTS category VARCHAR(100);`);
   await run(`ALTER TABLE courses ADD COLUMN IF NOT EXISTS level VARCHAR(50);`);
   await run(`ALTER TABLE courses ADD COLUMN IF NOT EXISTS tags TEXT[];`);

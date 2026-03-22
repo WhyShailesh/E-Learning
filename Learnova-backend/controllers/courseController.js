@@ -18,6 +18,20 @@ async function userOwnsCourse(userId, courseId) {
   return result.rowCount > 0;
 }
 
+// ── GET /courses/staff (Assign Instructors/Admins) ────────────────────────
+export const getCourseStaff = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, name, role FROM users 
+       WHERE role IN ('admin', 'instructor') 
+       ORDER BY role ASC, name ASC`
+    );
+    return ok(res, result.rows);
+  } catch (err) {
+    return fail(res, err.message, 500);
+  }
+}
+
 // ── A1: GET /courses ───────────────────────────────────────────────────────
 // ?search=  ?view=kanban|list  ?includeAll=true (admin/instructor only)
 // Access rules:
@@ -41,7 +55,7 @@ export const getCourses = async (req, res) => {
       result = await pool.query(
         `SELECT
             c.id, c.title, c.description, c.tags, c.views_count, c.is_published, c.published,
-            c.image_url, c.level, c.price, c.thumbnail, c.course_image, c.visibility,
+            c.image_url, c.level, c.price, c.course_image, c.visibility,
             c.access_rule, c.website_id, c.responsible_id, c.instructor_id,
             c.created_by, c.created_at,
             u.name                               AS instructor_name,
@@ -60,7 +74,7 @@ export const getCourses = async (req, res) => {
       result = await pool.query(
         `SELECT
             c.id, c.title, c.description, c.tags, c.views_count, c.is_published, c.published,
-            c.image_url, c.level, c.price, c.thumbnail, c.course_image, c.visibility,
+            c.image_url, c.level, c.price, c.course_image, c.visibility,
             c.access_rule, c.website_id, c.responsible_id, c.instructor_id,
             c.created_by, c.created_at,
             u.name                               AS instructor_name,
@@ -87,7 +101,7 @@ export const getCourses = async (req, res) => {
       result = await pool.query(
         `SELECT
             c.id, c.title, c.description, c.tags, c.views_count, c.is_published, c.published,
-            c.image_url, c.level, c.price, c.thumbnail, c.course_image, c.visibility,
+            c.image_url, c.level, c.price, c.course_image, c.visibility,
             c.access_rule, c.website_id, c.responsible_id, c.instructor_id,
             c.created_by, c.created_at,
             u.name                               AS instructor_name,
@@ -155,7 +169,6 @@ export const createCourse = async (req, res) => {
       title,
       description = "",
       price = 0,
-      thumbnail = null,
       image_url = null,
       level = null,
       published = false,
@@ -171,13 +184,13 @@ export const createCourse = async (req, res) => {
 
     const result = await pool.query(
       `INSERT INTO courses
-         (title, description, instructor_id, price, thumbnail, image_url, level,
+         (title, description, instructor_id, price, image_url, level,
           published, is_published, tags, views_count, visibility, access_rule,
           course_image, website_id, responsible_id, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$8,$9,0,$10,$11,$12,$13,$14,$3)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$7,$8,0,$9,$10,$11,$12,$13,$3)
        RETURNING *`,
       [
-        title, description, req.user.id, price, thumbnail, image_url, level,
+        title, description, req.user.id, price, image_url, level,
         published, tags, visibility, access_rule, course_image, website_id, responsible_id,
       ]
     );
@@ -213,7 +226,7 @@ export const updateCourse = async (req, res) => {
     }
 
     const {
-      title, description, price, thumbnail, image_url, level, published,
+      title, description, price, image_url, level, published,
       tags, visibility, access_rule, course_image, website_id, responsible_id,
     } = req.body;
 
@@ -222,21 +235,20 @@ export const updateCourse = async (req, res) => {
        SET title          = COALESCE($1,  title),
            description    = COALESCE($2,  description),
            price          = COALESCE($3,  price),
-           thumbnail      = COALESCE($4,  thumbnail),
-           image_url      = COALESCE($5,  image_url),
-           level          = COALESCE($6,  level),
-           published      = COALESCE($7,  published),
-           is_published   = COALESCE($7,  is_published),
-           tags           = COALESCE($8,  tags),
-           visibility     = COALESCE($9,  visibility),
-           access_rule    = COALESCE($10, access_rule),
-           course_image   = COALESCE($11, course_image),
-           website_id     = COALESCE($12, website_id),
-           responsible_id = COALESCE($13, responsible_id)
-       WHERE id = $14
+           image_url      = COALESCE($4,  image_url),
+           level          = COALESCE($5,  level),
+           published      = COALESCE($6,  published),
+           is_published   = COALESCE($6,  is_published),
+           tags           = COALESCE($7,  tags),
+           visibility     = COALESCE($8,  visibility),
+           access_rule    = COALESCE($9, access_rule),
+           course_image   = COALESCE($10, course_image),
+           website_id     = COALESCE($11, website_id),
+           responsible_id = COALESCE($12, responsible_id)
+       WHERE id = $13
        RETURNING *`,
       [
-        title, description, price, thumbnail, image_url, level, published,
+        title, description, price, image_url, level, published,
         tags, visibility, access_rule, course_image, website_id, responsible_id, id,
       ]
     );

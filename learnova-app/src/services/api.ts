@@ -82,6 +82,9 @@ export const uploadImage = (token: string, file: File) => {
   });
 };
 
+export const getCourseStaff = (token: string) =>
+  request<any>("/courses/staff", { token }).then((r) => r.data ?? r);
+
 // ─── Lessons ──────────────────────────────────────────────────────────────────
 
 export const createLesson = (token: string, courseId: string, payload: any) =>
@@ -178,6 +181,7 @@ export const api = {
   updateCourse,
   publishCourse,
   uploadImage,
+  getCourseStaff,
   // Lessons
   createLesson,
   updateLesson,

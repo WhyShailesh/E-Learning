@@ -9,6 +9,7 @@ import {
   shareCourse,
   getAttendees,
   addAttendee,
+  getCourseStaff,
 } from "../controllers/courseController.js";
 import { getLessons, createLesson } from "../controllers/lessonController.js";
 import { getQuizzesForCourse } from "../controllers/quizController.js";
@@ -31,6 +32,9 @@ router.patch("/:id/publish",
   verifyToken, authorizeRole("admin", "instructor"), publishCourse);
 router.post("/:id/share",
   verifyToken, shareCourse);
+  
+router.get("/staff",
+  verifyToken, authorizeRole("admin", "instructor"), getCourseStaff);
 
 // ── A2 — Attendees ─────────────────────────────────────────────────────────
 router.get("/:id/attendees",

@@ -40,7 +40,6 @@ interface Course {
   image_url?: string;
   level?: string;
   price?: number;
-  thumbnail?: string;
   published?: boolean;
   lessons: Lesson[];
 }
@@ -94,10 +93,15 @@ export default function CourseFormPage() {
   const [imageUrl, setImageUrl]     = useState("");
   const [level, setLevel]           = useState("");
   const [price, setPrice]           = useState<number>(0);
-  const [thumbnail, setThumbnail]   = useState("");
   const [published, setPublished]   = useState(false);
   const [tags, setTags]             = useState<string[]>([]);
   const [tagInput, setTagInput]     = useState("");
+  
+  // new access options
+  const [visibility, setVisibility] = useState("everyone");
+  const [accessRule, setAccessRule] = useState("open");
+  const [responsibleId, setResponsibleId] = useState<number | null>(null);
+  const [staffList, setStaffList] = useState<{id: number, name: string, role: string}[]>([]);
 
   // tabs
   const [tab, setTab] = useState<"content" | "description" | "options" | "quiz">("content");
@@ -164,13 +168,17 @@ export default function CourseFormPage() {
         setImageUrl(data.image_url || "");
         setLevel(data.level || "");
         setPrice(data.price ?? 0);
-        setThumbnail(data.thumbnail || "");
         setPublished(!!data.published);
+        setVisibility(data.visibility || "everyone");
+        setAccessRule(data.access_rule || "open");
+        setResponsibleId(data.responsible_id || null);
         setLessons(Array.isArray(data.lessons) ? data.lessons : []);
         setTags(data.tags ? (Array.isArray(data.tags) ? data.tags : [data.tags]) : []);
       })
       .catch(() => toast.error("Failed to load course"))
       .finally(() => setLoading(false));
+
+    api.getCourseStaff(token).then(setStaffList).catch(console.error);
 
     loadQuizzes(id);
   }, [id]);
@@ -186,8 +194,10 @@ export default function CourseFormPage() {
         image_url: imageUrl,
         level,
         price,
-        thumbnail,
         published,
+        visibility,
+        access_rule: accessRule,
+        responsible_id: responsibleId,
       });
       toast.success("Course saved successfully");
     } catch (err: any) {
@@ -785,37 +795,66 @@ export default function CourseFormPage() {
 
               <div className="space-y-1.5">
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Price (₹)
+                  Course Admin
                 </label>
-                <input
-                  type="number"
-                  min={0}
-                  value={price}
-                  onChange={(e) => setPrice(Number(e.target.value))}
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-colors"
-                  placeholder="0 for free"
-                />
+                <select
+                  value={responsibleId || ""}
+                  onChange={(e) => setResponsibleId(e.target.value ? Number(e.target.value) : null)}
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800 focus:border-indigo-400 focus:outline-none"
+                >
+                  <option value="">— Unassigned —</option>
+                  {staffList.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name} ({s.role})</option>
+                  ))}
+                </select>
               </div>
 
-              <div className="sm:col-span-2 space-y-1.5">
+              <div className="space-y-1.5">
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Thumbnail URL
+                  Visibility
                 </label>
-                <input
-                  value={thumbnail}
-                  onChange={(e) => setThumbnail(e.target.value)}
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-colors"
-                  placeholder="https://images.example.com/thumb.jpg"
-                />
-                {thumbnail && (
-                  <img
-                    src={thumbnail}
-                    alt="thumbnail preview"
-                    className="mt-2 h-28 rounded-lg object-cover border border-gray-200"
-                    onError={(e) => (e.currentTarget.style.display = "none")}
-                  />
-                )}
+                <select
+                  value={visibility}
+                  onChange={(e) => setVisibility(e.target.value)}
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800 focus:border-indigo-400 focus:outline-none"
+                >
+                  <option value="everyone">Everyone (Public)</option>
+                  <option value="signed-in">Signed-in Only</option>
+                </select>
               </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  How People Enroll
+                </label>
+                <select
+                  value={accessRule}
+                  onChange={(e) => setAccessRule(e.target.value)}
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800 focus:border-indigo-400 focus:outline-none"
+                >
+                  <option value="open">Open (Free)</option>
+                  <option value="on-invitation">On Invitation</option>
+                  <option value="on-payment">On Payment</option>
+                </select>
+              </div>
+
+              {accessRule === "on-payment" && (
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Price (₹)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={price}
+                    onChange={(e) => setPrice(Number(e.target.value))}
+                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-colors"
+                    placeholder="e.g. 500"
+                  />
+                </div>
+              )}
+
+
             </div>
           </div>
         )}

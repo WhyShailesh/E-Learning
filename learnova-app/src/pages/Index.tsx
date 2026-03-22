@@ -90,12 +90,11 @@ const Home = () => {
                   to={`/learner/courses/${c.id}`}
                   className="group flex flex-col bg-white/80 backdrop-blur-xl border border-white shadow-xl shadow-indigo-900/5 rounded-3xl p-5 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-indigo-900/10 transition-all duration-300 cursor-pointer overflow-hidden"
                 >
-                  {/* Course Image / Thumbnail */}
-                  <div className="relative h-44 rounded-2xl mb-4 overflow-hidden flex items-center justify-center bg-gray-50">
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    {c.image_url || c.thumbnail ? (
-                      <img
-                        src={c.image_url || c.thumbnail}
+                  {/* Course Image */}
+                  <div className="relative aspect-video overflow-hidden rounded-t-2xl">
+                    {c.image_url ? (
+                      <img 
+                        src={c.image_url}
                         alt={c.title}
                         className="h-full w-full object-cover transform group-hover:scale-105 transition-transform duration-500"
                         onError={(e) => { e.currentTarget.style.display = "none"; }}

@@ -29,7 +29,7 @@ export const enrollCourse = async (req, res) => {
 export const getMyEnrollments = async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT e.*, c.title, c.thumbnail, c.description
+      `SELECT e.*, c.title, c.description
        FROM enrollments e
        JOIN courses c ON c.id = e.course_id
        WHERE e.user_id = $1

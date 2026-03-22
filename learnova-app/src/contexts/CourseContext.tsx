@@ -15,7 +15,6 @@ interface Course {
   id: string;
   title: string;
   description: string;
-  thumbnail?: string;
   image_url?: string;
   price?: number;
   rating?: number;
