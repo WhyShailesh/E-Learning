@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCourses } from "@/contexts/CourseContext";
 import { api } from "@/services/api";
-import { ArrowLeft, ArrowRight, CheckCircle, Circle, Lock, Play, Menu, FileText, HelpCircle, Video, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle, Circle, Lock, Play, Menu, FileText, HelpCircle, Video, X, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";// Types
 interface Lesson {
   id: string;
@@ -424,11 +424,7 @@ const UnifiedPlayer = ({ course, quizzes, progress, isCourseOwned, purchaseCours
                       <span>{lesson.itemType === 'quiz' ? 'Quiz' : (lesson.type || "Content")}</span>
                     </div>
 
-                    {lesson.description && (
-                      <p className="mt-1.5 text-xs text-gray-500 line-clamp-2 leading-relaxed">
-                        {lesson.description}
-                      </p>
-                    )}
+
                   </div>
                 </div>
               );
@@ -450,13 +446,7 @@ const UnifiedPlayer = ({ course, quizzes, progress, isCourseOwned, purchaseCours
 
         <div className="flex-1 flex flex-col p-4 md:p-8 max-w-6xl w-full mx-auto">
           
-          {/* Top Description Box */}
-          <div className="bg-white border border-gray-200 shadow-sm rounded-xl p-5 mb-6">
-            <p className="text-gray-600 text-sm leading-relaxed">
-              <span className="font-semibold text-gray-900 mr-2">Overview:</span>
-              {activeLesson.description || "No description provided for this content."}
-            </p>
-          </div>
+
 
           {/* Main Content Player Frame */}
           <div className="flex-1 flex flex-col bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-xl ring-1 ring-black/5">
@@ -501,11 +491,65 @@ const UnifiedPlayer = ({ course, quizzes, progress, isCourseOwned, purchaseCours
 
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PAYMENT MODAL (MOCK SECURE CHECKOUT)
+// ─────────────────────────────────────────────────────────────────────────────
+const PaymentModal = ({ course, onPay, onClose }: { course: any; onPay: () => void; onClose: () => void }) => {
+  const [loading, setLoading] = useState(false);
+
+  const handlePay = () => {
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      onPay();
+    }, 1500);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 md:p-8 relative animate-fade-up border border-indigo-100/50">
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 rounded-full p-1.5 transition-colors">
+          <X className="w-5 h-5" />
+        </button>
+        
+        <div className="w-16 h-16 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center mb-6 mx-auto shadow-inner">
+          <CreditCard className="w-8 h-8 text-indigo-600" />
+        </div>
+        
+        <h3 className="text-2xl font-extrabold text-center text-gray-900 mb-2 tracking-tight">Secure Checkout</h3>
+        <p className="text-center text-gray-500 mb-8 text-sm max-w-xs mx-auto leading-relaxed">
+          You are about to purchase full lifetime access to <span className="font-bold text-gray-800">{course.title}</span>.
+        </p>
+
+        <div className="bg-gray-50 rounded-2xl p-5 mb-8 border border-gray-100 flex justify-between items-center shadow-inner">
+          <span className="text-xs font-bold uppercase tracking-widest text-gray-500">Total Amount</span>
+          <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+            ₹{course.price || 0}
+          </span>
+        </div>
+
+        <button
+          onClick={handlePay}
+          disabled={loading}
+          className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-extrabold py-4 rounded-xl shadow-lg shadow-indigo-600/20 transition-all flex items-center justify-center gap-2 hover:-translate-y-0.5"
+        >
+          {loading ? (
+            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            `Pay ₹${course.price || 0} Now`
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // COURSE DETAIL (Landing Page for Unenrolled Users)
 // ─────────────────────────────────────────────────────────────────────────────
 const CourseOverviewLanding = ({ course, purchaseCourse }: any) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"overview" | "reviews">("overview");
+  const [showPayment, setShowPayment] = useState(false);
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -530,9 +574,7 @@ const CourseOverviewLanding = ({ course, purchaseCourse }: any) => {
                 Course
               </span>
               <h2 className="text-2xl font-bold mt-2 text-gray-900">{course.title}</h2>
-              <p className="text-sm text-gray-500 mt-2 line-clamp-2 max-w-lg">
-                {course.description}
-              </p>
+
               <div className="flex items-center gap-4 mt-3 text-sm text-gray-600">
                 <span className="capitalize px-2 py-0.5 bg-gray-100 rounded">{course.level || 'Beginner'}</span>
                 <span>⭐ {course.rating || 5}</span>
@@ -558,15 +600,32 @@ const CourseOverviewLanding = ({ course, purchaseCourse }: any) => {
               </button>
             ) : (
               <button
-                className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-lg font-medium w-full shadow-md transition-colors"
-                onClick={() => purchaseCourse(String(course.id))}
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-8 py-3.5 rounded-xl font-bold w-full shadow-lg shadow-indigo-600/20 transition-all hover:-translate-y-0.5"
+                onClick={() => {
+                  if (course.access_rule === 'on-payment' || course.price > 0) {
+                    setShowPayment(true);
+                  } else {
+                    purchaseCourse(String(course.id));
+                  }
+                }}
               >
-                {course.access_rule === 'on-payment' ? 'Buy Now' : 'Enroll Now'}
+                {course.access_rule === 'on-payment' || course.price > 0 ? 'Buy Now' : 'Enroll Now'}
               </button>
             )}
           </div>
         </div>
       </div>
+
+      {showPayment && (
+        <PaymentModal 
+          course={course}
+          onClose={() => setShowPayment(false)}
+          onPay={() => {
+            setShowPayment(false);
+            purchaseCourse(String(course.id));
+          }}
+        />
+      )}
 
       {/* TABS */}
       <div className="flex items-center gap-4 mt-8 border-b pb-2">

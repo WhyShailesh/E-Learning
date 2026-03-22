@@ -92,7 +92,7 @@ export default function CourseFormPage() {
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl]     = useState("");
   const [level, setLevel]           = useState("");
-  const [price, setPrice]           = useState<number>(0);
+  const [price, setPrice]           = useState<number | "">("");
   const [published, setPublished]   = useState(false);
   const [tags, setTags]             = useState<string[]>([]);
   const [tagInput, setTagInput]     = useState("");
@@ -167,7 +167,7 @@ export default function CourseFormPage() {
         setDescription(data.description || "");
         setImageUrl(data.image_url || "");
         setLevel(data.level || "");
-        setPrice(data.price ?? 0);
+        setPrice(data.price ?? "");
         setPublished(!!data.published);
         setVisibility(data.visibility || "everyone");
         setAccessRule(data.access_rule || "open");
@@ -193,7 +193,7 @@ export default function CourseFormPage() {
         description,
         image_url: imageUrl,
         level,
-        price,
+        price: price === "" ? 0 : price,
         published,
         visibility,
         access_rule: accessRule,
@@ -847,7 +847,7 @@ export default function CourseFormPage() {
                     type="number"
                     min={0}
                     value={price}
-                    onChange={(e) => setPrice(Number(e.target.value))}
+                    onChange={(e) => setPrice(e.target.value === "" ? "" : Number(e.target.value))}
                     className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-colors"
                     placeholder="e.g. 500"
                   />

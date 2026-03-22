@@ -1,13 +1,39 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCourses } from "@/contexts/CourseContext";
+import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { BookOpen, GraduationCap, Search, Sparkles, Award, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const TIERS = [
+  { name: "Newbie", min: 0 },
+  { name: "Explorer", min: 20 },
+  { name: "Achiever", min: 40 },
+  { name: "Specialist", min: 60 },
+  { name: "Expert", min: 80 },
+  { name: "Master", min: 100 },
+];
+
 const Home = () => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { courses, loadingCourses, isCourseOwned } = useCourses();
+  const [points, setPoints] = useState(0);
+
+  useEffect(() => {
+    if (user && token && user.role === 'learner') {
+      api.learnerDashboard(token)
+        .then((data: any) => {
+           if (data.total_points !== undefined) {
+             setPoints(data.total_points);
+           }
+        })
+        .catch(console.error);
+    }
+  }, [user, token]);
+
+  const currentTier = [...TIERS].reverse().find(t => points >= t.min) || TIERS[0];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/80 text-gray-900 p-4 md:p-8 font-sans selection:bg-indigo-200">
@@ -28,9 +54,7 @@ const Home = () => {
               <>Ignite Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">Learning</span> Journey</>
             )}
           </h1>
-          <p className="text-lg text-gray-500 max-w-xl leading-relaxed">
-            Beautifully crafted courses designed to propel your skills to the absolute highest tier. Explore, enroll, and truly master your craft.
-          </p>
+
         </div>
 
         <div className="relative z-10 w-full md:w-auto shrink-0 flex items-center justify-end">
@@ -75,9 +99,7 @@ const Home = () => {
                 <GraduationCap className="h-8 w-8 text-indigo-600" />
               </div>
               <p className="text-xl font-extrabold text-gray-900 tracking-tight">No courses available yet</p>
-              <p className="mt-2 text-sm text-gray-500 max-w-sm">
-                Check back very soon—incredible new premium courses will appear here once they are officially published by our instructors.
-              </p>
+
             </div>
           )}
 
@@ -110,7 +132,7 @@ const Home = () => {
                   {/* Title & Info */}
                   <div className="flex flex-col flex-1">
                     <h3 className="text-lg font-bold leading-snug text-gray-900 group-hover:text-indigo-600 transition-colors line-clamp-2">{c.title}</h3>
-                    <p className="text-sm text-gray-500 mt-2 line-clamp-2 leading-relaxed">{c.description}</p>
+
                     
                     {/* Instructor */}
                     {c.instructor_name && (
@@ -171,10 +193,10 @@ const Home = () => {
                 <div className="absolute inset-0 rounded-full p-[3px] bg-gradient-to-br from-indigo-400 to-purple-400 mask-circle" style={{ WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)', WebkitMaskComposite: 'xor', padding: '3px' }} />
                 <div className="flex flex-col items-center">
                   <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-b from-indigo-600 to-purple-600 mb-1">
-                    20
+                    {points}
                   </span>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Total Points</p>
-                  <p className="mt-2 text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">Newbie</p>
+                  <p className="mt-2 text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">{currentTier.name}</p>
                 </div>
               </div>
             </div>
@@ -183,23 +205,18 @@ const Home = () => {
             <div className="relative z-10">
               <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4 px-2">Achievement Tiers</p>
               <div className="space-y-2">
-                {[
-                  { name: "Newbie", pts: 20, active: true },
-                  { name: "Explorer", pts: 40, active: false },
-                  { name: "Achiever", pts: 60, active: false },
-                  { name: "Specialist", pts: 80, active: false },
-                  { name: "Expert", pts: 100, active: false },
-                  { name: "Master", pts: 120, active: false },
-                ].map((badge, i) => (
-                  <div key={i} className={cn("flex items-center justify-between p-3 rounded-xl border text-sm transition-colors", badge.active ? "bg-indigo-50 border-indigo-100" : "bg-white/50 border-gray-100 opacity-60")}>
-                    <span className={cn("font-bold", badge.active ? "text-indigo-900" : "text-gray-600")}>
+                {TIERS.map((badge, i) => {
+                  const active = badge.name === currentTier.name;
+                  return (
+                  <div key={i} className={cn("flex items-center justify-between p-3 rounded-xl border text-sm transition-colors", active ? "bg-indigo-50 border-indigo-100" : "bg-white/50 border-gray-100 opacity-60")}>
+                    <span className={cn("font-bold", active ? "text-indigo-900" : "text-gray-600")}>
                       {badge.name}
                     </span>
-                    <span className={cn("text-xs font-medium px-2 py-0.5 rounded-md", badge.active ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-500")}>
-                      {badge.pts} pts
+                    <span className={cn("text-xs font-medium px-2 py-0.5 rounded-md", active ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-500")}>
+                      {badge.min}+ pts
                     </span>
                   </div>
-                ))}
+                )})}
               </div>
             </div>
           </div>

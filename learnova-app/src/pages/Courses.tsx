@@ -31,9 +31,7 @@ const Courses = () => {
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-800 to-purple-800 leading-tight">
               All Courses
             </h1>
-            <p className="mt-4 text-base md:text-lg text-gray-500 max-w-lg leading-relaxed font-medium">
-              Explore our catalogue and find the perfect premium course tailored for your journey to mastery.
-            </p>
+
           </div>
 
           <div className="relative z-10 w-full md:w-auto">
@@ -72,9 +70,7 @@ const Courses = () => {
               <Search className="h-10 w-10 text-indigo-500" />
             </div>
             <h3 className="text-2xl font-extrabold text-gray-900 tracking-tight">No courses found</h3>
-            <p className="mt-3 text-base text-gray-500 max-w-md">
-              We couldn't find any courses matching "<span className="font-semibold text-indigo-600">{search}</span>". Try adjusting your search keywords.
-            </p>
+
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -123,9 +119,7 @@ const Courses = () => {
                     {c.title}
                   </h3>
                   
-                  <p className="mt-3 text-sm text-gray-500 line-clamp-2 leading-relaxed font-medium">
-                    {c.description}
-                  </p>
+
                   
                   <div className="mt-auto pt-6 flex items-center justify-between border-t border-gray-100/60">
                     <div className="flex flex-col">

@@ -9,7 +9,22 @@ export const learnerDashboard = async (req, res) => {
        WHERE e.user_id = $1`,
       [req.user.id]
     );
-    res.json({ my_courses: myCourses.rows });
+
+    const pointsRes = await pool.query(
+      `SELECT COALESCE(SUM(max_score), 0)::int as total_points
+       FROM (
+         SELECT MAX(score) as max_score
+         FROM quiz_attempts
+         WHERE user_id = $1
+         GROUP BY quiz_id
+       ) as best_scores`,
+      [req.user.id]
+    );
+
+    res.json({ 
+      my_courses: myCourses.rows,
+      total_points: pointsRes.rows[0].total_points 
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

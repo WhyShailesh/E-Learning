@@ -24,7 +24,7 @@ const MyCourses = () => {
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-800 to-purple-800 mb-3">
               My Courses
             </h1>
-            <p className="text-lg text-gray-500 font-medium">Continue your learning journey and track your premium progress.</p>
+
           </div>
         </div>
 
@@ -35,9 +35,7 @@ const MyCourses = () => {
               <BookOpen className="h-10 w-10 text-indigo-500" />
             </div>
             <h3 className="text-2xl font-extrabold text-gray-900 tracking-tight">No courses enrolled yet</h3>
-            <p className="mt-3 text-base text-gray-500 max-w-md">
-              You haven't purchased or started any courses. Explore our premium catalogue to begin learning today.
-            </p>
+
             <Link to="/learner/courses" className="mt-8 relative group cursor-pointer inline-block">
               <div className="absolute -inset-1 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-500" />
               <button className="relative bg-white text-indigo-700 border border-indigo-100 hover:bg-indigo-50 font-extrabold px-8 py-4 rounded-xl shadow-sm transition-colors text-base">
