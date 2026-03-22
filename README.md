@@ -28,6 +28,7 @@ A modern, full-stack Learning Management System (LMS) designed for scalable cour
 - Analytics — Track performance, enrollments, and activity  
 
 
+
 learnova/
 ├── backend/
 │   ├── config/          # DB config
