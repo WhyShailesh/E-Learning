@@ -91,12 +91,4 @@ Authorization: Bearer <token>
 
 
 
-## Notes
 
-- Seeder script generates:
-  - 300+ learners  
-  - 10 instructors  
-  - 50 courses  
-  - Lessons, quizzes, enrollments  
-
-- Designed for demo-ready data and testing
