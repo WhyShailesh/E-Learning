@@ -2,7 +2,7 @@
 
 A modern, full-stack Learning Management System (LMS) designed for scalable course delivery with role-based access for Learners, Instructors, and Administrators.
 
----
+
 
 ## Tech Stack
 
@@ -14,7 +14,7 @@ A modern, full-stack Learning Management System (LMS) designed for scalable cour
 | Auth     | JWT, role-based (Admin, Instructor, Learner) |
 | Data     | Faker (for seeding demo data) |
 
----
+
 
 ## Features
 
@@ -27,26 +27,29 @@ A modern, full-stack Learning Management System (LMS) designed for scalable cour
 - Admin Control — Manage users, courses, and platform-wide data  
 - Analytics — Track performance, enrollments, and activity  
 
----
 
-## Project Structure
 
 learnova/
-├── Learnova-backend/      # Express + PostgreSQL API
-│   ├── config/
-│   ├── routes/
-│   ├── middleware/
-│   ├── seed.js
-│   └── server.js
-├── learnova-app/          # React + Vite frontend
-│   └── src/
-│       ├── components/
-│       ├── pages/
-│       ├── contexts/
-│       └── api/
+├── backend/
+│   ├── config/          # DB config
+│   ├── controllers/     # Business logic
+│   ├── routes/          # API routes
+│   ├── middleware/      # Auth, errors
+│   ├── seed/            # Seeder script
+│   ├── server.js        # Entry point
+│   └── package.json
+│
+├── frontend/
+│   ├── src/
+│   │   ├── components/  # Reusable UI
+│   │   ├── pages/       # Screens (admin, instructor, learner)
+│   │   ├── services/    # API calls
+│   │   ├── context/     # Global state
+│   │   └── main.tsx
+│   └── package.json
+│
 ├── README.md
-
----
+└── .gitignore
 
 ## Quick Start
 
@@ -67,7 +70,7 @@ npm run dev
 Admin: admin@gmail.com / admin  
 Other users: generated via seeder (password123)
 
----
+
 
 ## API Overview
 
@@ -86,7 +89,7 @@ Other users: generated via seeder (password123)
 All protected routes require:
 Authorization: Bearer <token>
 
----
+
 
 ## Notes
 
