@@ -4,18 +4,19 @@ import AdminSidebar from "@/components/AdminSidebar";
 import AdminTopBar from "@/components/AdminTopBar";
 
 /**
- * AdminLayout — light theme.
- * No 'dark' class — uses :root CSS variables (light by default).
+ * AdminLayout — Premium Glassmorphism Theme.
  */
 export default function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div className="flex min-h-screen w-full bg-gray-50">
+    <div className="flex h-screen w-full bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/80 font-sans selection:bg-indigo-200 overflow-hidden">
       <AdminSidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
-      <div className="flex flex-1 flex-col overflow-hidden">
+      
+      <div className="flex flex-1 flex-col overflow-hidden relative">
         <AdminTopBar />
-        <main className="flex-1 overflow-auto p-6">
+        
+        <main className="flex-1 overflow-auto p-6 md:p-10 relative z-10 w-full max-w-7xl mx-auto">
           <Outlet />
         </main>
       </div>

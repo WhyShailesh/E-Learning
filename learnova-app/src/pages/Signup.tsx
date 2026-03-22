@@ -4,11 +4,11 @@ import { useAuth, getRoleRedirect } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BookOpen, Eye, EyeOff, ArrowRight, User, Mail, Lock } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import AuthLayout from "@/layouts/AuthLayout";
 
-const Signup = () => {
+export default function Signup() {
   const { signup, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState("");
@@ -21,136 +21,101 @@ const Signup = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email || !password) { toast.error("Please fill all fields"); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast.error("Invalid email format"); return; }
-    if (password.length < 6) { toast.error("Password must be at least 6 characters"); return; }
-    setLoading(true);
-    const ok = await signup(name, email, password);
-    if (ok) {
-      toast.success("Account created!");
-      const u = JSON.parse(localStorage.getItem("learnova_auth") || "{}")?.user;
-      navigate(u ? getRoleRedirect(u.role) : "/learner/dashboard");
-    } else {
-      toast.error("Email already registered");
+    if (!name || !email || !password) {
+      toast.error("Please fill all fields");
+      return;
     }
+    setLoading(true);
+    const u = await signup(name, email, password);
     setLoading(false);
+    if (u) {
+      toast.success("Account created successfully");
+      navigate("/learner/dashboard");
+    } else {
+      toast.error("Registration failed. Please try again.");
+    }
   };
 
   return (
     <AuthLayout>
-      <div className="relative flex min-h-screen items-center justify-center px-4 overflow-hidden">
-        {/* Subtle background decoration */}
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-emerald-50 to-teal-100 opacity-50 blur-3xl" />
-          <div className="absolute -bottom-40 -left-40 h-[400px] w-[400px] rounded-full bg-gradient-to-tr from-sky-50 to-blue-100 opacity-50 blur-3xl" />
+      <div className="w-full max-w-4xl bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col md:flex-row">
+        {/* Left Side: Brand Context (Horizontal Layout Component) */}
+        <div className="md:w-5/12 bg-slate-100 p-8 flex flex-col justify-center border-b md:border-b-0 md:border-r border-slate-200 items-start">
+          <h1 className="text-2xl font-semibold text-slate-800 mb-2">Create an account</h1>
+          <p className="text-sm text-slate-500 mb-6">Join Learnova and start upgrading your skills today.</p>
+          <div className="hidden md:block w-12 h-1 bg-indigo-600 rounded-full mb-4"></div>
+          <ul className="hidden md:block text-xs text-slate-500 space-y-2">
+            <li>✓ Access to premium courses</li>
+            <li>✓ Track your progress</li>
+            <li>✓ Earn completion certificates</li>
+          </ul>
         </div>
 
-        <div className="relative w-full max-w-md">
-          {/* Header */}
-          <div className="mb-8 text-center">
-            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 shadow-xl shadow-slate-900/20">
-              <BookOpen className="h-8 w-8 text-white" />
+        {/* Right Side: Form */}
+        <div className="md:w-7/12 p-8 sm:p-10 flex flex-col justify-center">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="name" className="text-sm text-slate-700">Full Name</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="John Doe"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="h-10 rounded-md border-slate-300 text-slate-900 focus-visible:ring-indigo-500"
+              />
             </div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-              Create your account
-            </h1>
-            <p className="mt-2 text-[15px] text-slate-500">
-              Start your learning journey today — it's free
-            </p>
-          </div>
 
-          {/* Card */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-900/[0.06]">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="name" className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
-                  <User className="h-3.5 w-3.5 text-slate-400" /> Full Name
-                </Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-sm text-slate-700">Email Address</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="email@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="h-10 rounded-md border-slate-300 text-slate-900 focus-visible:ring-indigo-500"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="text-sm text-slate-700">Password</Label>
+              <div className="relative">
                 <Input
-                  id="name"
-                  placeholder="Anika Sharma"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="h-11 rounded-xl border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus-visible:border-slate-400 focus-visible:ring-0 focus-visible:bg-white transition-colors"
+                  id="password"
+                  type={showPw ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-10 rounded-md border-slate-300 pr-10 text-slate-900 focus-visible:ring-indigo-500"
                 />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
-                  <Mail className="h-3.5 w-3.5 text-slate-400" /> Email
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-11 rounded-xl border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus-visible:border-slate-400 focus-visible:ring-0 focus-visible:bg-white transition-colors"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="password" className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
-                  <Lock className="h-3.5 w-3.5 text-slate-400" /> Password
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPw ? "text" : "password"}
-                    placeholder="Min 6 characters"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="h-11 rounded-xl border-slate-200 bg-slate-50 pr-11 text-slate-900 placeholder:text-slate-400 focus-visible:border-slate-400 focus-visible:ring-0 focus-visible:bg-white transition-colors"
-                  />
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors"
-                    onClick={() => setShowPw(!showPw)}
-                  >
-                    {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="pt-1">
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="group h-11 w-full rounded-xl bg-slate-900 text-white hover:bg-slate-800 active:bg-slate-950 transition-all shadow-lg shadow-slate-900/20 font-medium"
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  onClick={() => setShowPw(!showPw)}
                 >
-                  {loading ? (
-                    <span className="flex items-center gap-2">
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                      Creating account…
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-2">
-                      Create Account
-                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                    </span>
-                  )}
-                </Button>
+                  {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
-            </form>
+            </div>
 
-            <p className="mt-6 text-center text-sm text-slate-500">
-              Already have an account?{" "}
-              <Link to="/" className="font-semibold text-slate-800 hover:text-slate-900 hover:underline transition-colors">
-                Sign in
-              </Link>
-            </p>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full h-10 mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-md transition-colors"
+            >
+              {loading ? "Creating account..." : "Sign Up"}
+            </Button>
+          </form>
+
+          <div className="mt-6 text-center text-sm text-slate-500 border-t border-slate-100 pt-6">
+            Already have an account?{" "}
+            <Link to="/" className="text-indigo-600 hover:underline font-medium">
+              Sign in
+            </Link>
           </div>
-
-          <p className="mt-6 text-center text-xs text-slate-400">
-            By creating an account you agree to our{" "}
-            <span className="text-slate-600 hover:underline cursor-pointer">Terms</span>{" "}
-            and{" "}
-            <span className="text-slate-600 hover:underline cursor-pointer">Privacy Policy</span>
-          </p>
         </div>
       </div>
     </AuthLayout>
   );
-};
-
-export default Signup;
+}

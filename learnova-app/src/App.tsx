@@ -54,9 +54,9 @@ function App() {
             <BrowserRouter>
               <Routes>
                 {/* Public routes — wrapped in AuthLayout (light theme) */}
-                <Route path="/" element={<AuthLayout><Login /></AuthLayout>} />
-                <Route path="/signup" element={<AuthLayout><Signup /></AuthLayout>} />
-                <Route path="/admin/login" element={<AuthLayout><AdminLogin /></AuthLayout>} />
+                <Route path="/" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/admin/login" element={<AdminLogin />} />
                 <Route path="/dashboard" element={<RequireAuth><DashboardRedirect /></RequireAuth>} />
 
                 {/* Learner routes */}

@@ -1,4 +1,3 @@
-
 import express from "express";
 import {
   getQuizzesForCourse,
@@ -12,6 +11,7 @@ import {
   addQuestion,       // legacy
   submitQuiz,        // legacy
   getCourseQuizzes,  // legacy
+  getQuizAttempt,
 } from "../controllers/quizController.js";
 import { verifyToken, requireRole } from "../middleware/authMiddleware.js";
 
@@ -20,6 +20,7 @@ const router = express.Router();
 // A6 — Quiz CRUD
 router.get("/course/:courseId", getCourseQuizzes);          // legacy compat
 router.get("/:id", getQuiz);
+router.get("/attempt/:id", verifyToken, getQuizAttempt);
 router.post("/", verifyToken, requireRole("admin", "instructor"), createQuiz);
 router.put("/:id", verifyToken, requireRole("admin", "instructor"), updateQuiz);
 router.delete("/:id", verifyToken, requireRole("admin", "instructor"), deleteQuiz);

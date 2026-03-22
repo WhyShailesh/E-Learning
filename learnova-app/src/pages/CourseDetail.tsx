@@ -3,31 +3,250 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCourses } from "@/contexts/CourseContext";
 import { api } from "@/services/api";
-import { ArrowLeft, ArrowRight, CheckCircle, Circle, Lock, Play, Menu, FileText, HelpCircle, Video } from "lucide-react";
-
-// Types
+import { ArrowLeft, ArrowRight, CheckCircle, Circle, Lock, Play, Menu, FileText, HelpCircle, Video, X } from "lucide-react";
+import { cn } from "@/lib/utils";// Types
 interface Lesson {
   id: string;
   title: string;
   description?: string;
-  type?: "video" | "document" | "quiz";
+  type?: "video" | "document" | "quiz" | "lesson";
   content_url?: string;
+  itemType?: "lesson" | "quiz";
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// QUIZ PLAYER COMPONENT
+// ─────────────────────────────────────────────────────────────────────────────
+const QuizPlayer = ({ quizId, onFinish, isLast }: { quizId: string, onFinish: () => void, isLast: boolean }) => {
+  const { token } = useAuth();
+  const [quiz, setQuiz] = useState<any>(null);
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [submitted, setSubmitted] = useState(false);
+  const [score, setScore] = useState(0);
+
+  useEffect(() => {
+    if (!quizId || !token) return;
+    Promise.all([
+      api.getQuiz(quizId),
+      api.getQuizAttempt(token, quizId).catch(() => null)
+    ]).then(([quizRes, attemptRes]) => {
+      setQuiz(quizRes.data || quizRes);
+      if (attemptRes) {
+        setScore(attemptRes.score);
+        setSubmitted(true);
+      }
+    }).catch(console.error);
+  }, [quizId, token]);
+
+  if (!quiz) {
+    return <div className="absolute inset-0 text-gray-500 flex items-center justify-center p-8 bg-gray-50">Loading quiz data...</div>;
+  }
+
+  // Quiz without questions
+  if (!quiz.questions || quiz.questions.length === 0) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center p-4 bg-gray-50">
+        <div className="text-center p-8 max-w-md bg-white rounded-3xl shadow-sm border border-gray-100">
+          <HelpCircle className="w-16 h-16 text-indigo-400 mx-auto mb-4" />
+          <h3 className="text-2xl font-bold mb-2">Quiz Empty</h3>
+          <p className="text-gray-500 mb-6">The instructor hasn't added any questions to this quiz yet.</p>
+          <button onClick={onFinish} className="bg-gray-200 text-gray-800 px-6 py-2 rounded-xl font-medium hover:bg-gray-300">Skip to next</button>
+        </div>
+      </div>
+    );
+  }
+
+  const handleSubmit = async () => {
+    if (!token) return;
+    try {
+      const payload = {
+        quiz_id: quiz.id,
+        answers: Object.values(answers).map(optId => ({ option_id: optId }))
+      };
+      const res = await api.submitQuiz(token, payload);
+      const computedScore = res.data?.score ?? res.score ?? 0;
+      setScore(computedScore);
+      setSubmitted(true);
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Failed to submit quiz");
+    }
+  };
+
+  const handleNext = () => {
+    if (currentIdx < quiz.questions.length - 1) {
+      setCurrentIdx(currentIdx + 1);
+    } else {
+      handleSubmit();
+    }
+  };
+
+  const handleRetake = () => {
+    setSubmitted(false);
+    setAnswers({});
+    setCurrentIdx(0);
+    setScore(0);
+  };
+
+  if (submitted) {
+    return (
+      <div className="absolute inset-0 w-full h-full p-4 md:p-8 flex items-center justify-center bg-gray-50/50">
+        <div className="w-full max-w-3xl max-h-full flex flex-col bg-white shadow-xl shadow-indigo-900/5 border border-gray-100 rounded-3xl overflow-hidden">
+          
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 md:px-8 border-b border-gray-100 shrink-0 bg-white">
+            <div className="flex items-center gap-3">
+              <CheckCircle className="w-8 h-8 text-emerald-500" />
+              <div>
+                <h3 className="text-xl font-extrabold text-gray-900">Quiz Completed!</h3>
+                <p className="text-sm text-gray-500">You scored <span className="font-bold text-indigo-600">{score}</span> out of {quiz.questions.length}</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button 
+                onClick={handleRetake} 
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-2.5 rounded-xl font-bold transition-all text-sm"
+              >
+                Retake Quiz
+              </button>
+              <button 
+                onClick={onFinish} 
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-md shadow-indigo-600/20 transition-all hover:-translate-y-0.5 text-sm"
+              >
+                {isLast ? 'Finish Course' : 'Continue Course'}
+              </button>
+            </div>
+          </div>
+
+          {/* Scrollable Answer Review */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-5 md:p-8 bg-gray-50">
+            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-6">Answer Review</h4>
+            <div className="space-y-8">
+              {quiz.questions.map((q: any, idx: number) => {
+                const selectedOptId = answers[q.id];
+                return (
+                  <div key={q.id} className="bg-white p-5 md:p-6 rounded-2xl border border-gray-200/60 shadow-sm">
+                    <p className="font-bold text-gray-900 leading-relaxed mb-4">
+                      <span className="text-gray-400 mr-2">{idx + 1}.</span>
+                      {q.question_text || q.question}
+                    </p>
+                    <div className="space-y-2">
+                      {q.options.map((opt: any) => {
+                        const isSelected = selectedOptId === String(opt.id);
+                        const isCorrect = opt.is_correct;
+                        
+                        let optClass = "border-gray-100 text-gray-600 bg-gray-50/50";
+                        let icon = null;
+                        
+                        if (isCorrect) {
+                          optClass = "border-emerald-200 bg-emerald-50 text-emerald-900 font-medium";
+                          icon = <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />;
+                        } else if (isSelected && !isCorrect) {
+                          optClass = "border-red-200 bg-red-50 text-red-900 font-medium";
+                          icon = <X className="w-5 h-5 text-red-500 shrink-0" />;
+                        }
+
+                        return (
+                          <div key={opt.id} className={cn("p-3.5 rounded-xl border flex items-start gap-3", optClass)}>
+                            {icon || <div className="w-5 h-5 border-2 border-gray-300 rounded-full shrink-0" />}
+                            <span className="text-sm">{opt.option_text || opt.text}</span>
+                            {isSelected && <span className="ml-auto text-xs font-bold uppercase tracking-wider opacity-60">Your Answer</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const question = quiz.questions[currentIdx];
+
+  return (
+    <div className="absolute inset-0 w-full h-full p-4 md:p-8 flex items-center justify-center bg-gray-50/50">
+      <div className="w-full max-w-3xl max-h-full flex flex-col bg-white shadow-xl shadow-indigo-900/5 border border-gray-100 rounded-3xl overflow-hidden">
+        
+        {/* Header - Fixed */}
+        <div className="flex items-center justify-between text-sm text-gray-500 p-5 md:px-8 border-b border-gray-100 shrink-0 bg-white">
+          <span className="font-medium bg-gray-100 px-3 py-1 rounded-full text-xs md:text-sm">Question {currentIdx + 1} / {quiz.questions.length}</span>
+          <span className="font-bold text-indigo-500 tracking-tight text-xs md:text-sm truncate ml-4">{quiz.title}</span>
+        </div>
+        
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-5 md:p-8">
+          <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-6 leading-relaxed">{question.question_text || question.question}</h3>
+          
+          <div className="space-y-3">
+            {question.options.map((opt: any) => {
+              const isSelected = answers[question.id] === String(opt.id);
+              return (
+                <button 
+                  key={opt.id}
+                  onClick={() => setAnswers(prev => ({ ...prev, [question.id]: String(opt.id) }))}
+                  className={`w-full text-left p-4 rounded-xl border-2 transition-all flex items-center gap-4 ${
+                    isSelected 
+                      ? 'border-indigo-600 bg-indigo-50/50 shadow-sm' 
+                      : 'border-gray-100 hover:border-indigo-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-indigo-600 bg-indigo-600' : 'border-gray-300'}`}>
+                    {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
+                  </div>
+                  <span className={`font-medium text-sm md:text-base ${isSelected ? 'text-indigo-900' : 'text-gray-700'}`}>
+                    {opt.option_text || opt.text}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Footer - Fixed */}
+        <div className="p-5 md:px-8 border-t border-gray-100 bg-gray-50/50 shrink-0">
+          <button 
+            disabled={!answers[question.id]}
+            onClick={handleNext}
+            className={`w-full py-3.5 rounded-xl font-bold transition-all ${
+              answers[question.id] 
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 hover:-translate-y-0.5 hover:bg-indigo-700' 
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            {currentIdx === quiz.questions.length - 1 ? 'Submit Quiz' : 'Next Question'}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // UNIFIED COURSE PLAYER (Rendered for Enrolled Users)
 // ─────────────────────────────────────────────────────────────────────────────
-const UnifiedPlayer = ({ course, progress, isCourseOwned, purchaseCourse, markLessonComplete }: any) => {
+const UnifiedPlayer = ({ course, quizzes, progress, isCourseOwned, purchaseCourse, markLessonComplete }: any) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  // Combine lessons and quizzes into a unified progression list
+  const items = [
+    ...(course.lessons || []).map((l: any) => ({ ...l, itemType: 'lesson' })),
+    ...(quizzes || []).map((q: any) => ({ ...q, type: 'quiz', itemType: 'quiz' }))
+  ];
   
-  const total = course.lessons.length;
+  const total = items.length;
   const completedCount = progress.length;
   const percent = total === 0 ? 0 : Math.round((completedCount / total) * 100);
 
   // Auto-start at the next uncompleted lesson
-  const nextUncompleted = course.lessons.findIndex((l: any) => !progress.includes(String(l.id)));
-  const initialIdx = nextUncompleted === -1 ? 0 : nextUncompleted;
+  const nextUncompleted = items.findIndex((l: any) => l.itemType === 'lesson' && !progress.includes(String(l.id)));
+  const initialIdx = nextUncompleted === -1 ? (total > 0 ? 0 : 0) : nextUncompleted;
   
   // Also support ?lesson=x in URL to deep link
   const urlLesson = searchParams.get("lesson");
@@ -36,32 +255,27 @@ const UnifiedPlayer = ({ course, progress, isCourseOwned, purchaseCourse, markLe
   const [activeLessonIndex, setActiveLessonIndex] = useState(defaultIdx || 0);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  const activeLesson = course.lessons[activeLessonIndex];
+  const activeLesson = items[activeLessonIndex];
   const isLastLesson = activeLessonIndex === total - 1;
 
   const handleNext = async () => {
     if (!activeLesson) return;
     
-    // Mark current complete
-    await markLessonComplete(String(course.id), String(activeLesson.id));
+    // Mark current complete (Only lessons get marked complete right now, quizzes have their own submit logic)
+    if (activeLesson.itemType === 'lesson') {
+      await markLessonComplete(String(course.id), String(activeLesson.id));
+    }
     
     if (!isLastLesson) {
       setActiveLessonIndex(activeLessonIndex + 1);
+    } else {
+      navigate("/learner/courses");
     }
   };
 
   const renderContent = (lesson: any) => {
-    if (lesson.type === "quiz") {
-      return (
-        <div className="text-center p-8">
-          <HelpCircle className="w-16 h-16 text-purple-500 mx-auto mb-4 opacity-80" />
-          <h4 className="text-2xl font-bold mb-2">Quiz Time</h4>
-          <p className="text-gray-400 mb-6">Test your knowledge on this topic.</p>
-          <button className="bg-purple-600 hover:bg-purple-500 text-white px-8 py-3 rounded-full font-medium transition-colors">
-            Start Quiz
-          </button>
-        </div>
-      );
+    if (lesson.itemType === "quiz") {
+      return <QuizPlayer quizId={String(lesson.id)} onFinish={handleNext} isLast={isLastLesson} />;
     }
 
     const url = lesson.content_url || "";
@@ -133,79 +347,85 @@ const UnifiedPlayer = ({ course, progress, isCourseOwned, purchaseCourse, markLe
   };
 
   if (!activeLesson) {
-    return <div className="h-screen flex items-center justify-center text-white bg-[#0f111a]">No lessons in this course yet!</div>;
+    return <div className="h-screen flex items-center justify-center text-gray-500 bg-gray-50">No lessons in this course yet!</div>;
   }
 
   return (
-    <div className="flex h-screen bg-[#0f111a] text-white overflow-hidden font-sans">
+    <div className="flex h-screen bg-gray-50 text-gray-800 overflow-hidden font-sans">
       
       {/* ── LEFT SIDEBAR ── */}
       <div 
-        className={`${sidebarOpen ? 'w-[320px]' : 'w-0'} flex-shrink-0 border-r border-[#2a2e3d] flex flex-col transition-all duration-300 relative bg-[#0f111a] z-10`}
+        className={`${sidebarOpen ? 'w-[320px]' : 'w-0'} flex-shrink-0 border-r border-gray-200 flex flex-col transition-all duration-300 relative bg-white z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)]`}
       >
         <div className="flex-1 w-[320px] flex flex-col max-h-screen">
           {/* Header */}
           <div className="p-5 pb-2">
             <button
               onClick={() => navigate("/learner/dashboard")}
-              className="flex items-center gap-2 px-3 py-1.5 border border-purple-500/50 rounded-lg text-purple-300 hover:bg-purple-900/30 transition-colors text-sm w-fit"
+              className="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors text-sm w-fit font-medium"
             >
               <ArrowLeft className="w-4 h-4" />
               Back
             </button>
           </div>
 
-          <div className="px-5 py-4 border-b border-[#2a2e3d]">
-            <h2 className="font-semibold text-lg leading-tight tracking-wide mb-3">{course.title}</h2>
-            <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
-              <div className="h-full bg-orange-500 transition-all rounded-full" style={{ width: `${percent}%` }} />
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h2 className="font-bold text-lg leading-tight tracking-tight text-gray-900 mb-3">{course.title}</h2>
+            <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-full bg-indigo-600 transition-all duration-500 rounded-full" style={{ width: `${percent}%` }} />
             </div>
-            <p className="mt-2 text-sm text-orange-400">{percent}% Completed</p>
+            <p className="mt-2 text-xs font-semibold text-indigo-600 uppercase tracking-wider">{percent}% Completed</p>
           </div>
 
           {/* Lesson List */}
           <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1 custom-scrollbar">
-            {course.lessons.map((lesson: Lesson, idx: number) => {
+            {items.map((lesson: any, idx: number) => {
               const isActive = idx === activeLessonIndex;
-              const isComp = progress.includes(String(lesson.id));
+              const isComp = lesson.itemType === 'lesson' ? progress.includes(String(lesson.id)) : false; // Quiz completion relies on backend state not currently mapped to progress array
               
               const getIcon = () => {
+                if (lesson.itemType === 'quiz') return <HelpCircle className="w-3.5 h-3.5 mb-0.5" />;
                 if (lesson.type === 'video') return <Video className="w-3.5 h-3.5 mb-0.5" />;
                 if (lesson.type === 'document') return <FileText className="w-3.5 h-3.5 mb-0.5" />;
-                if (lesson.type === 'quiz') return <HelpCircle className="w-3.5 h-3.5 mb-0.5" />;
-                return null;
+                return <Circle className="w-3.5 h-3.5 mb-0.5" />;
               };
 
               return (
                 <div
-                  key={lesson.id}
+                  key={`${lesson.itemType}-${lesson.id}`}
                   onClick={() => setActiveLessonIndex(idx)}
-                  className={`relative p-3 rounded-lg cursor-pointer transition-colors group flex gap-3 ${
-                    isActive ? "bg-blue-900/10" : "hover:bg-white/5"
+                  className={`relative p-3 rounded-xl cursor-pointer transition-all duration-200 group flex gap-3 ${
+                    isActive 
+                      ? "bg-indigo-50 border border-indigo-100 shadow-sm" 
+                      : "hover:bg-gray-50 border border-transparent"
                   }`}
                 >
                   {/* Status Circle */}
-                  <div className="pt-1 flex-shrink-0">
-                    {isComp ? (
-                      <CheckCircle className={`w-4 h-4 ${isActive ? 'text-blue-400' : 'text-green-500'}`} />
+                  <div className="pt-1 flex-shrink-0 transition-transform group-hover:scale-110">
+                    {lesson.itemType === 'lesson' ? (
+                      isComp ? (
+                        <CheckCircle className={`w-4 h-4 ${isActive ? 'text-indigo-600' : 'text-emerald-500'}`} />
+                      ) : (
+                        <Circle className={`w-4 h-4 ${isActive ? 'text-indigo-600' : 'text-gray-300'}`} />
+                      )
                     ) : (
-                      <Circle className={`w-4 h-4 ${isActive ? 'text-blue-400' : 'text-gray-500'}`} />
+                      <HelpCircle className={`w-4 h-4 ${isActive ? 'text-indigo-600' : 'text-amber-500'}`} />
                     )}
                   </div>
 
                   {/* Content Info */}
                   <div className="flex-1 min-w-0">
-                    <p className={`text-[15px] font-medium leading-tight mb-1.5 ${isActive ? "text-blue-400" : "text-gray-200"}`}>
+                    <p className={`text-[14px] font-semibold leading-tight mb-1 ${isActive ? "text-indigo-900" : "text-gray-700"}`}>
                       {lesson.title}
                     </p>
                     
-                    <div className={`flex items-center gap-1.5 text-xs ${isActive ? "text-green-400" : "text-gray-500"}`}>
+                    <div className={`flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider ${isActive ? "text-indigo-500" : "text-gray-500"}`}>
                       {getIcon()}
-                      <span className="capitalize">{lesson.type || "Content"}</span>
+                      <span>{lesson.itemType === 'quiz' ? 'Quiz' : (lesson.type || "Content")}</span>
                     </div>
 
                     {lesson.description && (
-                      <p className="mt-1.5 text-xs text-green-500/70 italic line-clamp-2 leading-relaxed">
+                      <p className="mt-1.5 text-xs text-gray-500 line-clamp-2 leading-relaxed">
                         {lesson.description}
                       </p>
                     )}
@@ -218,12 +438,12 @@ const UnifiedPlayer = ({ course, progress, isCourseOwned, purchaseCourse, markLe
       </div>
 
       {/* ── RIGHT MAIN CONTENT ── */}
-      <div className="flex-1 flex flex-col relative min-w-0 bg-[#0c0e15]">
+      <div className="flex-1 flex flex-col relative min-w-0 bg-gray-50/50">
         
-        {/* Hamburger Toggle (Absolute overlapping left edge) */}
+        {/* Hamburger Toggle */}
         <button 
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="absolute left-0 top-6 -translate-x-1/2 bg-[#1a1d29] border border-[#2a2e3d] p-1.5 rounded-full z-20 text-gray-400 hover:text-white hover:bg-[#2a2e3d] transition-colors"
+          className="absolute left-0 top-6 -translate-x-1/2 bg-white border border-gray-200 shadow-sm p-1.5 rounded-full z-20 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
         >
           <Menu className="w-4 h-4" />
         </button>
@@ -231,41 +451,47 @@ const UnifiedPlayer = ({ course, progress, isCourseOwned, purchaseCourse, markLe
         <div className="flex-1 flex flex-col p-4 md:p-8 max-w-6xl w-full mx-auto">
           
           {/* Top Description Box */}
-          <div className="border border-[#2a2e3d] bg-black/40 rounded-xl p-5 mb-6">
-            <p className="text-orange-300/80 text-sm leading-relaxed">
+          <div className="bg-white border border-gray-200 shadow-sm rounded-xl p-5 mb-6">
+            <p className="text-gray-600 text-sm leading-relaxed">
+              <span className="font-semibold text-gray-900 mr-2">Overview:</span>
               {activeLesson.description || "No description provided for this content."}
             </p>
           </div>
 
           {/* Main Content Player Frame */}
-          <div className="flex-1 flex flex-col border-2 border-[#2a2e3d] bg-black rounded-2xl overflow-hidden shadow-2xl">
+          <div className="flex-1 flex flex-col bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-xl ring-1 ring-black/5">
             {/* Player Header */}
-            <div className="px-6 py-4 bg-[#11131c] border-b border-[#2a2e3d]">
-              <h3 className="text-blue-400 font-medium tracking-wide">
+            <div className="px-6 py-4 bg-gray-50/80 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-gray-900 font-semibold tracking-tight text-lg flex items-center gap-2">
+                {activeLesson.itemType === 'quiz' && <HelpCircle className="w-5 h-5 text-indigo-500" />}
+                {activeLesson.itemType === 'lesson' && activeLesson.type === 'video' && <Video className="w-5 h-5 text-indigo-500" />}
+                {activeLesson.itemType === 'lesson' && activeLesson.type === 'document' && <FileText className="w-5 h-5 text-indigo-500" />}
                 {activeLesson.title}
               </h3>
             </div>
 
             {/* Player Body */}
-            <div className="flex-1 relative flex items-center justify-center overflow-hidden">
+            <div className="flex-1 relative flex items-center justify-center overflow-hidden bg-gray-900/5">
               {renderContent(activeLesson)}
             </div>
           </div>
 
           {/* Bottom Footer bar */}
-          <div className="pt-6 flex justify-end">
-            <button
-              onClick={handleNext}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded border transition-all ${
-                isLastLesson 
-                  ? 'border-green-500/50 bg-green-900/20 text-green-400 hover:bg-green-900/40' 
-                  : 'border-purple-500/50 bg-purple-900/20 text-purple-300 hover:bg-purple-900/40'
-              }`}
-            >
-              {isLastLesson ? 'Finish Course' : 'Next Content'}
-              {!isLastLesson && <ArrowRight className="w-4 h-4" />}
-            </button>
-          </div>
+          {activeLesson.itemType !== 'quiz' && (
+            <div className="pt-6 flex justify-end">
+              <button
+                onClick={handleNext}
+                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold shadow-sm hover:shadow-md transition-transform ${
+                  isLastLesson 
+                    ? 'bg-emerald-600 text-white hover:bg-emerald-700 hover:-translate-y-0.5' 
+                    : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:-translate-y-0.5'
+                }`}
+              >
+                {isLastLesson ? 'Finish Course' : 'Next Lesson'}
+                {!isLastLesson && <ArrowRight className="w-4 h-4" />}
+              </button>
+            </div>
+          )}
           
         </div>
       </div>
@@ -396,15 +622,24 @@ const CourseDetail = () => {
   const { user } = useAuth();
   const { purchasedCourses, getProgress, purchaseCourse, markLessonComplete } = useCourses();
   const [course, setCourse] = useState<any>(null);
+  const [quizzes, setQuizzes] = useState<any[]>([]);
 
   useEffect(() => {
     if (id) {
       api.getCourseById(id).then(setCourse).catch(console.error);
+      api.getCourseQuizzes(id).then(setQuizzes).catch(console.error);
     }
   }, [id]);
 
   if (!course) {
-    return <div className="h-screen flex items-center justify-center bg-[#0f111a] text-gray-500">Loading course details...</div>;
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+          <p className="text-gray-500 font-medium">Loading course details...</p>
+        </div>
+      </div>
+    );
   }
 
   // Admins and the course's own Instructor automatically get access to the player
@@ -420,6 +655,7 @@ const CourseDetail = () => {
     return (
       <UnifiedPlayer 
         course={course} 
+        quizzes={quizzes}
         progress={progress} 
         isCourseOwned={(cid: string) => purchasedCourses.includes(String(cid))}
         purchaseCourse={purchaseCourse}

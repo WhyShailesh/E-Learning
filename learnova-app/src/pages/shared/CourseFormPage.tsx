@@ -438,7 +438,7 @@ export default function CourseFormPage() {
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">
               Course Image
             </label>
-            <div className="relative flex h-[84px] w-full items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 overflow-hidden group transition-colors hover:border-indigo-400 hover:bg-indigo-50/50">
+            <div className="relative flex h-32 w-32 items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 overflow-hidden group transition-colors hover:border-indigo-400 hover:bg-indigo-50/50">
               {uploadingImage ? (
                 <div className="flex flex-col items-center gap-1.5 text-indigo-500">
                   <Loader2 className="h-5 w-5 animate-spin" />
@@ -572,12 +572,21 @@ export default function CourseFormPage() {
                         /* Inline edit row */
                         <tr key={lesson.id} className="bg-indigo-50">
                           <td className="px-4 py-2">
-                            <input
-                              autoFocus
-                              value={editTitle}
-                              onChange={(e) => setEditTitle(e.target.value)}
-                              className="w-full rounded border border-indigo-300 bg-white px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
-                            />
+                            <div className="flex flex-col gap-2">
+                              <input
+                                autoFocus
+                                value={editTitle}
+                                onChange={(e) => setEditTitle(e.target.value)}
+                                placeholder="Title"
+                                className="w-full rounded border border-indigo-300 bg-white px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                              />
+                              <input
+                                value={editUrl}
+                                onChange={(e) => setEditUrl(e.target.value)}
+                                placeholder="URL (e.g. YouTube/Drive link)"
+                                className="w-full rounded border border-indigo-300 bg-white px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 text-gray-600"
+                              />
+                            </div>
                           </td>
                           <td className="px-4 py-2">
                             <select

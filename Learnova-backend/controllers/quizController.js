@@ -239,29 +239,48 @@ export const submitQuiz = async (req, res) => {
   try {
     const { quiz_id, answers } = req.body;
     const user_id = req.user.id;
-    let score = 0;
+    console.log(`[submitQuiz] Received submission for quiz_id=${quiz_id}, user=${user_id}`);
 
-    for (const ans of answers) {
-      const correct = await pool.query(
-        "SELECT 1 FROM options WHERE id = $1 AND is_correct = true",
-        [ans.option_id]
+    // Guarantee the attempts table exists and supports overwriting via UNIQUE constraint
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS quiz_attempts (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        quiz_id INTEGER REFERENCES quizzes(id) ON DELETE CASCADE,
+        score INTEGER NOT NULL,
+        attempt_number INTEGER DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (user_id, quiz_id)
       );
-      if (correct.rows.length > 0) score++;
+    `);
+
+    let score = 0;
+    if (Array.isArray(answers)) {
+      for (const ans of answers) {
+        if (!ans.option_id) continue;
+        const correct = await pool.query(
+          "SELECT 1 FROM quiz_options WHERE id = $1 AND is_correct = true",
+          [ans.option_id]
+        );
+        if (correct.rows.length > 0) score++;
+      }
     }
+    console.log(`[submitQuiz] Calculated accurate score:`, score);
 
-    const countRes = await pool.query(
-      "SELECT COUNT(*) FROM quiz_attempts WHERE user_id=$1 AND quiz_id=$2",
-      [user_id, quiz_id]
-    );
-    const attempt_number = parseInt(countRes.rows[0].count) + 1;
-
+    // Overwrite old results when taking a re-test, increment attempt count
     await pool.query(
-      "INSERT INTO quiz_attempts (user_id, quiz_id, score, attempt_number) VALUES ($1,$2,$3,$4)",
-      [user_id, quiz_id, score, attempt_number]
+      `INSERT INTO quiz_attempts (user_id, quiz_id, score, attempt_number) 
+       VALUES ($1, $2, $3, 1)
+       ON CONFLICT (user_id, quiz_id) DO UPDATE 
+         SET score = EXCLUDED.score, 
+             attempt_number = quiz_attempts.attempt_number + 1, 
+             created_at = CURRENT_TIMESTAMP`,
+      [user_id, quiz_id, score]
     );
 
-    return ok(res, { score, attempt_number });
+    return ok(res, { score });
   } catch (err) {
+    console.error("[submitQuiz] Error:", err.message);
     return fail(res, err.message, 500);
   }
 };
@@ -275,6 +294,21 @@ export const getCourseQuizzes = async (req, res) => {
       [courseId]
     );
     return ok(res, result.rows);
+  } catch (err) {
+    return fail(res, err.message, 500);
+  }
+};
+
+export const getQuizAttempt = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user_id = req.user.id;
+    const attempt = await pool.query(
+      "SELECT score, attempt_number, created_at FROM quiz_attempts WHERE user_id = $1 AND quiz_id = $2",
+      [user_id, id]
+    );
+    if (!attempt.rows.length) return ok(res, null);
+    return ok(res, attempt.rows[0]);
   } catch (err) {
     return fail(res, err.message, 500);
   }

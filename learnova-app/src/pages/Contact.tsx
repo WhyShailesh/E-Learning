@@ -1,70 +1,100 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Mail, MapPin, Phone } from "lucide-react";
+import { Mail, MapPin, Phone, Send } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 
-const Contact = () => {
+export default function Contact() {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setTimeout(() => {
-      toast.success("Message sent! We'll get back to you soon.");
+      toast.success("Thanks for reaching out! We'll reply soon.");
       setLoading(false);
       (e.target as HTMLFormElement).reset();
     }, 600);
   };
 
+  const inputClass =
+    "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500";
+  const labelClass = "block text-sm font-medium text-slate-700 mb-1.5";
+
   return (
-    <div className="py-16">
-      <div className="container mx-auto max-w-4xl px-4">
-        <div className="mb-12 text-center animate-fade-up">
-          <h1 className="text-3xl font-bold text-foreground">Contact Us</h1>
-          <p className="mt-2 text-muted-foreground">Have questions? We'd love to hear from you.</p>
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 py-16 px-4">
+      <div className="container mx-auto max-w-5xl">
+
+        <div className="mb-12 border-b border-slate-200 pb-6">
+          <h1 className="text-3xl font-semibold text-slate-900">Contact</h1>
         </div>
-        <div className="grid gap-10 lg:grid-cols-2">
-          <form onSubmit={handleSubmit} className="space-y-5 rounded-xl border border-border bg-card p-8 animate-fade-up">
-            <div className="space-y-2">
-              <Label>Name</Label>
-              <Input placeholder="Your name" required />
+
+        <div className="grid gap-12 lg:grid-cols-5">
+
+          {/* Left Side: Contact Information */}
+          <div className="lg:col-span-2 space-y-8">
+            <div className="space-y-4">
+              <p className="text-slate-600">
+                If you have questions about a course, technical issues, or just want to say hi, feel free to drop us a line.
+              </p>
             </div>
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input type="email" placeholder="you@example.com" required />
-            </div>
-            <div className="space-y-2">
-              <Label>Message</Label>
-              <Textarea placeholder="How can we help?" rows={5} required />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Sending…" : "Send Message"}
-            </Button>
-          </form>
-          <div className="space-y-8 animate-fade-up" style={{ animationDelay: "0.1s" }}>
-            {[
-              { icon: Mail, label: "Email", value: "support@learnova.in" },
-              { icon: Phone, label: "Phone", value: "+91 98765 43210" },
-              { icon: MapPin, label: "Address", value: "Andheri West, Mumbai, Maharashtra 400058, India" },
-            ].map((item) => (
-              <div key={item.label} className="flex items-start gap-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary">
-                  <item.icon className="h-5 w-5 text-foreground" />
+
+            <div className="space-y-6 pt-4">
+              {[
+                { icon: Mail, label: "Email", value: "support@learnova.in" },
+                { icon: Phone, label: "Phone", value: "+91 98765 43210" },
+                { icon: MapPin, label: "Office", value: "Andheri West, Mumbai, MH 400058" },
+              ].map((item) => (
+                <div key={item.label} className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2 text-slate-900 font-medium">
+                    <item.icon className="h-4 w-4 text-slate-500" />
+                    <span>{item.label}</span>
+                  </div>
+                  <p className="text-slate-600 pl-6">{item.value}</p>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground">{item.label}</p>
-                  <p className="text-sm text-muted-foreground">{item.value}</p>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
+            
+            <div className="bg-slate-100 rounded-md p-4 mt-8 border border-slate-200">
+               <h3 className="text-sm font-medium text-slate-900 mb-1">Support Hours</h3>
+               <p className="text-sm text-slate-600">Monday - Friday: 9AM - 6PM IST</p>
+               <p className="text-sm text-slate-600">We typically reply within 24 hours.</p>
+            </div>
           </div>
+
+          {/* Right Side: Form */}
+          <div className="lg:col-span-3">
+            <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 p-6 md:p-8 shadow-sm space-y-5">
+              <div className="space-y-1">
+                <label className={labelClass}>Name</label>
+                <input type="text" placeholder="Jane Doe" required className={inputClass} />
+              </div>
+              
+              <div className="space-y-1">
+                <label className={labelClass}>Email address</label>
+                <input type="email" placeholder="jane@example.com" required className={inputClass} />
+              </div>
+              
+              <div className="space-y-1">
+                <label className={labelClass}>Message</label>
+                <textarea 
+                  placeholder="How can we help you?" 
+                  rows={5} 
+                  required 
+                  className={`${inputClass} resize-y min-h-[120px]`} 
+                />
+              </div>
+              
+              <button 
+                type="submit" 
+                className="w-full flex items-center justify-center gap-2 rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 transition-colors disabled:opacity-50 mt-2" 
+                disabled={loading}
+              >
+                {loading ? "Sending..." : "Send Message"}
+              </button>
+            </form>
+          </div>
+
         </div>
       </div>
     </div>
   );
-};
-
-export default Contact;
+}

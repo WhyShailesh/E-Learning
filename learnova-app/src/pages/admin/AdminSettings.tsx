@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { User, Bell, Shield, Globe, Save, Eye, EyeOff, Check } from "lucide-react";
+import { User, Bell, Shield, Globe, Save, Eye, EyeOff, Check, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -19,14 +19,14 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
       type="button"
       onClick={onChange}
       className={cn(
-        "relative h-5 w-9 rounded-full transition-colors",
-        checked ? "bg-indigo-600" : "bg-gray-200"
+        "relative h-6 w-11 rounded-full transition-all duration-300 border border-white/60 shadow-inner",
+        checked ? "bg-gradient-to-r from-indigo-500 to-purple-500 shadow-indigo-600/30" : "bg-gray-200"
       )}
     >
       <span
         className={cn(
-          "absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform",
-          checked && "translate-x-4"
+          "absolute left-0.5 top-0.5 h-4.5 w-4.5 rounded-full bg-white shadow-md transition-transform duration-300",
+          checked && "translate-x-5"
         )}
       />
     </button>
@@ -70,74 +70,92 @@ export default function AdminSettings() {
   };
 
   const inputClass =
-    "h-10 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 text-[13px] text-gray-800 placeholder:text-gray-400 outline-none focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all";
+    "h-14 w-full rounded-2xl border border-gray-200 bg-gray-50/50 px-4 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-inner";
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">Settings</h1>
-        <p className="mt-0.5 text-[13px] text-gray-500">Manage your profile and platform preferences</p>
+    <div className="space-y-8 font-sans relative z-10 w-full max-w-5xl">
+      {/* Header Panel */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/60 backdrop-blur-xl p-6 md:p-8 rounded-3xl border border-white/60 shadow-xl shadow-indigo-900/5 overflow-hidden relative group transition-all">
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-indigo-200/20 rounded-full blur-[80px] pointer-events-none -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-purple-200/20 rounded-full blur-[80px] pointer-events-none translate-y-1/2 -translate-x-1/2" />
+        
+        <div className="relative z-10 w-full">
+          <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600">
+            Platform Configuration
+          </h1>
+          <p className="mt-1 text-sm font-medium text-gray-500 max-w-xl">
+            Administer global settings, refine security protocols, and manage notification matrices.
+          </p>
+        </div>
       </div>
 
-      <div className="flex gap-5">
-        {/* Section nav */}
-        <div className="w-40 shrink-0">
-          <nav className="space-y-0.5">
+      <div className="flex flex-col md:flex-row gap-8">
+        {/* Section Nav */}
+        <div className="w-full md:w-56 shrink-0 relative z-10">
+          <nav className="space-y-2 sticky top-24">
             {sections.map((s) => (
               <button
                 key={s.id}
                 onClick={() => setActiveSection(s.id)}
                 className={cn(
-                  "flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-[13px] font-medium text-left transition-colors",
+                  "group flex w-full items-center gap-3 rounded-2xl px-5 py-3.5 text-sm font-bold text-left transition-all duration-300",
                   activeSection === s.id
-                    ? "bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-200"
-                    : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                    ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/30 hover:-translate-y-0.5 border border-transparent"
+                    : "bg-white/60 backdrop-blur-md text-gray-500 hover:bg-white hover:text-gray-900 border border-white/80 shadow-sm hover:shadow-md"
                 )}
               >
-                <s.icon className={cn("h-4 w-4 shrink-0", activeSection === s.id ? "text-indigo-600" : "text-gray-400")} />
+                <s.icon className={cn("h-5 w-5 shrink-0 transition-colors", activeSection === s.id ? "text-white" : "text-gray-400 group-hover:text-indigo-500")} />
                 {s.label}
               </button>
             ))}
           </nav>
         </div>
 
-        {/* Content panel */}
-        <div className="flex-1 min-w-0 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        {/* Content Panel */}
+        <div className="flex-1 min-w-0 rounded-3xl border border-white/60 bg-white/70 backdrop-blur-xl p-8 shadow-xl shadow-indigo-900/5 relative z-10 overflow-hidden">
+          
           {/* Profile */}
           {activeSection === "profile" && (
-            <div className="space-y-4">
-              <h2 className="text-[13px] font-semibold text-gray-600 border-b border-gray-100 pb-3">Profile Information</h2>
-              <div className="flex items-center gap-4 mb-5">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-100 text-lg font-bold text-indigo-700">
+            <div className="space-y-6 animate-fade-in">
+              <h2 className="text-sm font-extrabold text-gray-800 border-b border-gray-100/60 pb-4 uppercase tracking-widest">
+                Profile Architecture
+              </h2>
+              
+              <div className="flex items-center gap-5 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 p-6 rounded-3xl border border-white shadow-inner">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 text-xl font-black text-white shadow-lg shadow-indigo-600/30">
                   {profileForm.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
                 </div>
                 <div>
-                  <p className="text-[13px] font-medium text-gray-800">{profileForm.name}</p>
-                  <p className="text-[11px] text-gray-400 mt-0.5">Administrator</p>
+                  <p className="text-lg font-extrabold text-gray-900 tracking-tight">{profileForm.name}</p>
+                  <p className="text-[11px] font-bold text-indigo-500 uppercase tracking-widest mt-0.5">Primary Architect</p>
                 </div>
               </div>
-              {[
-                { label: "Full Name", key: "name", type: "text", placeholder: "Admin Name" },
-                { label: "Email Address", key: "email", type: "email", placeholder: "admin@example.com" },
-              ].map((field) => (
-                <div key={field.key} className="space-y-1.5">
-                  <label className="text-[12px] font-medium text-gray-500">{field.label}</label>
-                  <input
-                    type={field.type}
-                    value={profileForm[field.key as keyof typeof profileForm]}
-                    onChange={(e) => setProfileForm({ ...profileForm, [field.key]: e.target.value })}
-                    placeholder={field.placeholder}
-                    className={inputClass}
-                  />
-                </div>
-              ))}
-              <div className="space-y-1.5">
-                <label className="text-[12px] font-medium text-gray-500">Bio</label>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {[
+                  { label: "Nominal Designation", key: "name", type: "text", placeholder: "Admin Name" },
+                  { label: "Secure Email Address", key: "email", type: "email", placeholder: "admin@learnova.edu" },
+                ].map((field) => (
+                  <div key={field.key} className="space-y-2">
+                    <label className="text-[11px] font-black uppercase tracking-widest text-gray-500">{field.label}</label>
+                    <input
+                      type={field.type}
+                      value={profileForm[field.key as keyof typeof profileForm]}
+                      onChange={(e) => setProfileForm({ ...profileForm, [field.key]: e.target.value })}
+                      placeholder={field.placeholder}
+                      className={inputClass}
+                    />
+                  </div>
+                ))}
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-[11px] font-black uppercase tracking-widest text-gray-500">Global Bio</label>
                 <textarea
                   value={profileForm.bio}
                   onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
-                  rows={3}
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-[13px] text-gray-800 placeholder:text-gray-400 outline-none focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all resize-none"
+                  rows={4}
+                  className="w-full rounded-2xl border border-gray-200 bg-gray-50/50 p-4 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 transition-all resize-none shadow-inner"
                 />
               </div>
             </div>
@@ -145,20 +163,22 @@ export default function AdminSettings() {
 
           {/* Notifications */}
           {activeSection === "notifications" && (
-            <div className="space-y-1">
-              <h2 className="text-[13px] font-semibold text-gray-600 border-b border-gray-100 pb-3 mb-2">Notification Preferences</h2>
-              <div className="divide-y divide-gray-100">
+            <div className="space-y-2 animate-fade-in">
+              <h2 className="text-sm font-extrabold text-gray-800 border-b border-gray-100/60 pb-4 uppercase tracking-widest mb-4">
+                Notification Matrix
+              </h2>
+              <div className="divide-y divide-gray-100/60 bg-white border border-gray-100/60 rounded-3xl px-6 shadow-sm">
                 {[
-                  { key: "newEnrollment", label: "New Enrollment", desc: "When a learner enrols in a course" },
-                  { key: "courseCompletion", label: "Course Completion", desc: "When a learner completes a course" },
-                  { key: "newUser", label: "New User Registration", desc: "When someone creates an account" },
-                  { key: "weeklyReport", label: "Weekly Summary", desc: "Platform activity report each week" },
-                  { key: "systemAlerts", label: "System Alerts", desc: "Critical platform errors" },
+                  { key: "newEnrollment", label: "Enrollment Events", desc: "Trigger sequence on learner admission" },
+                  { key: "courseCompletion", label: "Graduation Subroutines", desc: "Trigger sequence on curricular completion" },
+                  { key: "newUser", label: "New Node Registration", desc: "Notify upon user database expansion" },
+                  { key: "weeklyReport", label: "Analytics Summary", desc: "Weekly compilation of KPI trajectories" },
+                  { key: "systemAlerts", label: "Critical Anomalies", desc: "Bypass standard filters for strict platform alerts" },
                 ].map((item) => (
-                  <div key={item.key} className="flex items-center justify-between py-3">
+                  <div key={item.key} className="flex items-center justify-between py-5 group">
                     <div>
-                      <p className="text-[13px] font-medium text-gray-700">{item.label}</p>
-                      <p className="text-[11px] text-gray-400 mt-0.5">{item.desc}</p>
+                      <p className="text-sm font-extrabold text-gray-800 leading-tight group-hover:text-indigo-600 transition-colors">{item.label}</p>
+                      <p className="text-[12px] font-medium text-gray-500 mt-1">{item.desc}</p>
                     </div>
                     <Toggle
                       checked={notifications[item.key as keyof typeof notifications]}
@@ -172,58 +192,70 @@ export default function AdminSettings() {
 
           {/* Security */}
           {activeSection === "security" && (
-            <div className="space-y-4">
-              <h2 className="text-[13px] font-semibold text-gray-600 border-b border-gray-100 pb-3">Security Settings</h2>
-              {[
-                { label: "Current Password", key: "old", show: showOldPw, toggle: () => setShowOldPw(!showOldPw) },
-                { label: "New Password", key: "next", show: showNewPw, toggle: () => setShowNewPw(!showNewPw) },
-                { label: "Confirm New Password", key: "confirm", show: showNewPw, toggle: () => {} },
-              ].map((field) => (
-                <div key={field.key} className="space-y-1.5">
-                  <label className="text-[12px] font-medium text-gray-500">{field.label}</label>
-                  <div className="relative">
-                    <input
-                      type={field.show ? "text" : "password"}
-                      value={passwords[field.key as keyof typeof passwords]}
-                      onChange={(e) => setPasswords({ ...passwords, [field.key]: e.target.value })}
-                      placeholder="••••••••"
-                      className={cn(inputClass, "pr-10")}
-                    />
-                    <button type="button" onClick={field.toggle} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
-                      {field.show ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                    </button>
+            <div className="space-y-6 animate-fade-in">
+              <h2 className="text-sm font-extrabold text-gray-800 border-b border-gray-100/60 pb-4 uppercase tracking-widest">
+                Cryptographic Credentials
+              </h2>
+              <div className="space-y-6 max-w-lg">
+                {[
+                  { label: "Active Cipher", key: "old", show: showOldPw, toggle: () => setShowOldPw(!showOldPw) },
+                  { label: "Pending Cipher", key: "next", show: showNewPw, toggle: () => setShowNewPw(!showNewPw) },
+                  { label: "Verify Pending Cipher", key: "confirm", show: showNewPw, toggle: () => {} },
+                ].map((field) => (
+                  <div key={field.key} className="space-y-2 flex-col">
+                    <label className="text-[11px] font-black uppercase tracking-widest text-gray-500">{field.label}</label>
+                    <div className="relative">
+                      <input
+                        type={field.show ? "text" : "password"}
+                        value={passwords[field.key as keyof typeof passwords]}
+                        onChange={(e) => setPasswords({ ...passwords, [field.key]: e.target.value })}
+                        placeholder="••••••••••••"
+                        className={cn(inputClass, "pr-12")}
+                      />
+                      <button type="button" onClick={field.toggle} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition-colors">
+                        {field.show ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
-              <div className="rounded-lg bg-blue-50 border border-blue-100 px-4 py-3 text-[12px] text-blue-600">
-                Password must be at least 8 characters.
+                ))}
+              </div>
+              <div className="rounded-2xl bg-indigo-50/50 border border-indigo-100 p-4 text-[12px] font-bold text-indigo-700 flex items-center gap-2 max-w-lg">
+                <Shield className="h-4 w-4" />
+                Algorithm necessitates minimum 8 encrypted characters.
               </div>
             </div>
           )}
 
           {/* Platform */}
           {activeSection === "platform" && (
-            <div className="space-y-4">
-              <h2 className="text-[13px] font-semibold text-gray-600 border-b border-gray-100 pb-3">Platform Configuration</h2>
-              {[
-                { label: "Platform Name", key: "platformName" },
-                { label: "Timezone", key: "timezone" },
-                { label: "Language", key: "language" },
-              ].map((field) => (
-                <div key={field.key} className="space-y-1.5">
-                  <label className="text-[12px] font-medium text-gray-500">{field.label}</label>
-                  <input
-                    type="text"
-                    value={platform[field.key as keyof typeof platform] as string}
-                    onChange={(e) => setPlatform({ ...platform, [field.key]: e.target.value })}
-                    className={inputClass}
-                  />
-                </div>
-              ))}
-              <div className="flex items-center justify-between py-3 border-t border-gray-100">
+            <div className="space-y-6 animate-fade-in">
+              <h2 className="text-sm font-extrabold text-gray-800 border-b border-gray-100/60 pb-4 uppercase tracking-widest">
+                Core Variables
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {[
+                  { label: "System Identifier", key: "platformName" },
+                  { label: "Temporal Origin", key: "timezone" },
+                  { label: "Linguistic Base", key: "language" },
+                ].map((field) => (
+                  <div key={field.key} className="space-y-2">
+                    <label className="text-[11px] font-black uppercase tracking-widest text-gray-500">{field.label}</label>
+                    <input
+                      type="text"
+                      value={platform[field.key as keyof typeof platform] as string}
+                      onChange={(e) => setPlatform({ ...platform, [field.key]: e.target.value })}
+                      className={inputClass}
+                    />
+                  </div>
+                ))}
+              </div>
+              
+              <div className="flex items-center justify-between p-6 mt-4 bg-rose-50/50 rounded-3xl border border-rose-100/50">
                 <div>
-                  <p className="text-[13px] font-medium text-gray-700">Maintenance Mode</p>
-                  <p className="text-[11px] text-gray-400 mt-0.5">Take the platform offline temporarily</p>
+                  <p className="text-sm font-extrabold text-gray-900 leading-tight">Maintenance Suspension</p>
+                  <p className="text-[12px] font-medium text-gray-500 mt-1 max-w-sm">
+                    Temporarily close external network portals for systemic upgrades. Users will observe a holding screen.
+                  </p>
                 </div>
                 <Toggle
                   checked={platform.maintenanceMode}
@@ -234,17 +266,17 @@ export default function AdminSettings() {
           )}
 
           {/* Save button */}
-          <div className="mt-5 flex justify-end border-t border-gray-100 pt-4">
+          <div className="mt-10 flex justify-end border-t border-gray-100/60 pt-6">
             <button
               onClick={handleSave}
               className={cn(
-                "flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-semibold transition-all shadow-sm",
+                "flex items-center gap-2 rounded-2xl px-8 py-3.5 text-sm font-extrabold transition-all shadow-lg hover:-translate-y-0.5",
                 saved
-                  ? "bg-emerald-600 text-white shadow-emerald-600/20"
-                  : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-600/20"
+                  ? "bg-emerald-600 text-white shadow-emerald-600/30"
+                  : "bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-indigo-600/30"
               )}
             >
-              {saved ? <><Check className="h-4 w-4" />Saved!</> : <><Save className="h-4 w-4" />Save Changes</>}
+              {saved ? <><Check className="h-5 w-5" />Synchronized</> : <><Sparkles className="h-5 w-5" />Deploy Modifications</>}
             </button>
           </div>
         </div>

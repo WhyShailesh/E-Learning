@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Outlet, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Search, LayoutGrid, List, LogOut, BookOpen } from "lucide-react";
+import { Search, LayoutGrid, List, LogOut, BookOpen, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function InstructorLayout() {
@@ -17,26 +17,31 @@ export default function InstructorLayout() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Top navigation bar — light theme */}
-      <header className="sticky top-0 z-40 border-b border-gray-200 bg-white shadow-sm">
-        <div className="flex h-14 items-center gap-4 px-6">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/80 font-sans selection:bg-indigo-200">
+      {/* Top navigation bar — Premium Glass */}
+      <header className="sticky top-0 z-40 bg-white/70 backdrop-blur-xl border-b border-white shadow-sm shadow-indigo-900/5">
+        <div className="flex h-16 items-center gap-4 px-6 max-w-7xl mx-auto">
           {/* Logo */}
-          <div className="flex shrink-0 items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
-              <BookOpen className="h-4 w-4 text-white" />
+          <div className="flex shrink-0 items-center gap-3">
+            <div className="relative group cursor-pointer inline-flex">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 shadow-lg shadow-indigo-600/20 transition-transform group-hover:scale-105 duration-300">
+                <BookOpen className="h-5 w-5 text-white" />
+              </div>
+              <div className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-amber-400 shadow-md border-2 border-white animate-pulse">
+                <Sparkles className="h-2 w-2 text-amber-900" />
+              </div>
             </div>
             <div>
-              <span className="block text-[13px] font-bold text-gray-900 leading-none">Learnova</span>
-              <span className="block text-[10px] text-gray-400 mt-0.5 uppercase tracking-widest">Instructor</span>
+              <span className="block text-sm font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 leading-none tracking-tight">Learnova</span>
+              <span className="block text-[10px] font-bold text-indigo-500 mt-1 uppercase tracking-widest">Instructor</span>
             </div>
           </div>
 
           {/* Divider */}
-          <div className="h-5 w-px bg-gray-200 mx-1" />
+          <div className="h-6 w-px bg-gray-200/60 mx-2" />
 
           {/* Tab nav */}
-          <nav className="flex gap-0.5">
+          <nav className="flex gap-1">
             {tabs.map((tab) => {
               const isActive = location.pathname.startsWith(tab.to);
               return (
@@ -44,10 +49,10 @@ export default function InstructorLayout() {
                   key={tab.to}
                   to={tab.to}
                   className={cn(
-                    "rounded-lg px-3.5 py-2 text-[13px] font-medium transition-colors",
+                    "rounded-xl px-4 py-2 text-sm font-bold transition-all duration-200",
                     isActive
-                      ? "bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-200"
-                      : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                      ? "bg-indigo-50 text-indigo-700 shadow-inner border border-indigo-100"
+                      : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
                   )}
                 >
                   {tab.label}
@@ -57,53 +62,40 @@ export default function InstructorLayout() {
           </nav>
 
           {/* Search */}
-          <div className="relative mx-auto flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+          <div className="relative ml-auto flex-1 max-w-sm hidden md:block">
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search courses…"
-              className="h-9 w-full rounded-lg border border-gray-200 bg-gray-50 pl-9 pr-4 text-[13px] text-gray-700 placeholder:text-gray-400 outline-none focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all"
+              className="h-10 w-full rounded-xl border border-white bg-white/50 pl-10 pr-4 text-sm font-medium text-gray-700 placeholder:text-gray-400 outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-inner"
             />
           </div>
 
-          {/* View toggle */}
-          <div className="flex shrink-0 rounded-lg border border-gray-200 overflow-hidden bg-white shadow-sm">
-            <button
-              onClick={() => setViewMode("kanban")}
-              className={cn("p-2 transition-colors", viewMode === "kanban" ? "bg-indigo-600 text-white" : "text-gray-400 hover:text-gray-600")}
-              title="Kanban view"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setViewMode("list")}
-              className={cn("p-2 transition-colors", viewMode === "list" ? "bg-indigo-600 text-white" : "text-gray-400 hover:text-gray-600")}
-              title="List view"
-            >
-              <List className="h-4 w-4" />
-            </button>
-          </div>
+
 
           {/* User + logout */}
-          <div className="flex shrink-0 items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 text-xs font-bold text-indigo-700">
+          <div className="flex shrink-0 items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-100 to-purple-100 shadow-inner border border-white text-sm font-black text-indigo-700">
               {user?.name?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "U"}
             </div>
-            <span className="hidden sm:block text-[12px] font-medium text-gray-700">{user?.name}</span>
+            <div className="hidden lg:block">
+              <span className="block text-[13px] font-extrabold text-gray-800 leading-none">{user?.name}</span>
+            </div>
             <button
               onClick={logout}
-              className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors ml-1"
+              className="group flex h-10 w-10 sm:h-auto sm:w-auto items-center justify-center gap-2 rounded-xl sm:px-3 sm:py-2 text-[13px] font-bold text-gray-500 hover:bg-rose-50 hover:text-rose-600 transition-all ml-1 border border-transparent hover:border-rose-100 hover:shadow-sm"
+              title="Sign out"
             >
-              <LogOut className="h-3.5 w-3.5" />
+              <LogOut className="h-4 w-4" />
               <span className="hidden sm:inline">Sign out</span>
             </button>
           </div>
         </div>
       </header>
 
-      <main className="p-6">
+      <main className="p-6 max-w-7xl mx-auto">
         <Outlet context={{ search, viewMode }} />
       </main>
     </div>

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   BookOpen, Pencil, Share2, Plus, GraduationCap,
-  FileText, Loader2, CheckCircle2, Circle,
+  FileText, Loader2, CheckCircle2, Circle, Sparkles, LayoutGrid, List
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
@@ -22,6 +22,7 @@ interface CourseCard {
   level?: string;
   total_lessons: number;
   published: boolean;
+  image_url?: string;
 }
 
 interface OutletContext {
@@ -35,11 +36,12 @@ export default function InstructorDashboard() {
   const outletContext = useOutletContext<OutletContext | null>();
   const search = outletContext?.search ?? "";
 
-  const [courses, setCourses]     = useState<CourseCard[]>([]);
-  const [loading, setLoading]     = useState(true);
+  const [courses, setCourses] = useState<CourseCard[]>([]);
+  const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
-  const [newTitle, setNewTitle]   = useState("");
-  const [creating, setCreating]   = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [viewMode, setViewMode] = useState<"kanban" | "list">(outletContext?.viewMode || "kanban");
 
   React.useEffect(() => {
     if (!token) return;
@@ -54,6 +56,7 @@ export default function InstructorDashboard() {
             level: c.level,
             total_lessons: c.total_lessons ?? 0,
             published: !!c.published,
+            image_url: c.image_url || c.thumbnail,
           }))
         );
       })
@@ -95,11 +98,11 @@ export default function InstructorDashboard() {
   // ── Loading skeleton ─────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-4">
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="h-24 animate-pulse rounded-xl border border-gray-200 bg-gray-50"
+            className="h-28 animate-pulse rounded-2xl border border-white/60 bg-white/40 shadow-sm"
           />
         ))}
       </div>
@@ -109,45 +112,50 @@ export default function InstructorDashboard() {
   // ── Empty state ──────────────────────────────────────────────────────────────
   if (courses.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-white py-20 text-center">
-        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
-          <GraduationCap className="h-7 w-7 text-indigo-400" />
+      <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-indigo-200 bg-white/60 backdrop-blur-md py-24 px-4 text-center shadow-inner relative overflow-hidden group">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-300/20 rounded-full blur-[60px] pointer-events-none -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-300/20 rounded-full blur-[60px] pointer-events-none translate-y-1/2 -translate-x-1/2" />
+
+        <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-xl shadow-indigo-600/30 text-white relative z-10">
+          <GraduationCap className="h-10 w-10" />
         </div>
-        <p className="text-sm font-semibold text-gray-700">No courses assigned yet</p>
-        <p className="mt-1.5 text-xs text-gray-400 max-w-xs">
-          Ask your admin to assign courses to you, or create a new course below.
+        <h3 className="text-2xl font-extrabold text-gray-900 tracking-tight relative z-10">No courses assigned yet</h3>
+        <p className="mt-2 text-sm text-gray-500 max-w-sm relative z-10">
+          Ask your admin to assign courses to you, or initiate a brand new premium course below.
         </p>
         <button
           onClick={() => setCreateOpen(true)}
-          className="mt-5 flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-[13px] font-semibold text-white hover:bg-indigo-700 transition-colors"
+          className="mt-8 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-4 text-sm font-extrabold text-white hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg shadow-indigo-600/20 hover:-translate-y-0.5 relative z-10"
         >
-          <Plus className="h-4 w-4" />
-          Create a Course
+          <Plus className="h-5 w-5" />
+          Create a New Course
         </button>
 
+        {/* Create Dialog inside Empty state for scope access */}
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md border-0 bg-white/90 backdrop-blur-xl shadow-2xl rounded-3xl">
             <DialogHeader>
-              <DialogTitle>Create New Course</DialogTitle>
-              <DialogDescription>Give your course a title to get started.</DialogDescription>
+              <DialogTitle className="text-xl font-bold text-gray-900">Create Premium Course</DialogTitle>
+              <DialogDescription className="text-gray-500">Provide a stunning title for your new curriculum.</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 pt-1">
+            <div className="space-y-4 pt-4">
               <Input
                 autoFocus
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="e.g. React for Beginners"
+                placeholder="e.g. Masterclass React Navigation"
                 onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+                className="h-14 rounded-2xl border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:border-indigo-500 focus-visible:ring-4 focus-visible:ring-indigo-500/20 text-base"
               />
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+              <div className="flex justify-end gap-3 pt-2">
+                <Button variant="ghost" className="h-12 rounded-xl text-gray-500" onClick={() => setCreateOpen(false)}>Cancel</Button>
                 <Button
                   onClick={handleCreate}
                   disabled={!newTitle.trim() || creating}
-                  className="bg-indigo-600 hover:bg-indigo-700"
+                  className="h-12 rounded-xl px-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold hover:shadow-lg shadow-indigo-600/30"
                 >
-                  {creating ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : null}
-                  {creating ? "Creating…" : "Create"}
+                  {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                  {creating ? "Forging…" : "Create Course"}
                 </Button>
               </div>
             </div>
@@ -159,133 +167,162 @@ export default function InstructorDashboard() {
 
   // ── Course list ──────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Header row */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white/60 backdrop-blur-md p-6 rounded-3xl border border-white/40 shadow-sm">
         <div>
-          <h2 className="text-base font-bold text-gray-900">My Courses</h2>
-          <p className="text-xs text-gray-400 mt-0.5">
-            {courses.length} course{courses.length !== 1 ? "s" : ""} assigned to you
+          <h2 className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-800 to-purple-800 tracking-tight">Active Curriculum</h2>
+          <p className="text-sm font-medium text-gray-500 mt-1">
+            {courses.length} premium course{courses.length !== 1 ? "s" : ""} securely assigned to your profile
           </p>
         </div>
-        <button
-          onClick={() => setCreateOpen(true)}
-          className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-[13px] font-semibold text-white hover:bg-indigo-700 transition-colors shadow-sm"
-        >
-          <Plus className="h-4 w-4" />
-          New Course
-        </button>
+        <div className="flex gap-3">
+          <div className="flex items-center rounded-xl bg-white border border-gray-200 shadow-sm p-1">
+            <button
+              onClick={() => setViewMode("kanban")}
+              className={cn("p-2 rounded-lg transition-colors", viewMode === "kanban" ? "bg-indigo-50 text-indigo-600" : "text-gray-400 hover:text-gray-600")}
+              title="Kanban View"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode("list")}
+              className={cn("p-2 rounded-lg transition-colors", viewMode === "list" ? "bg-indigo-50 text-indigo-600" : "text-gray-400 hover:text-gray-600")}
+              title="List View"
+            >
+              <List className="h-4 w-4" />
+            </button>
+          </div>
+          <button
+            onClick={() => setCreateOpen(true)}
+            className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-3 text-sm font-extrabold text-white hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg shadow-indigo-600/20 hover:-translate-y-0.5 whitespace-nowrap"
+          >
+            <Plus className="h-4 w-4" />
+            Create Course
+          </button>
+        </div>
       </div>
 
       {/* No search results */}
       {filtered.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-gray-200 bg-white py-10 text-center">
-          <FileText className="mb-2 h-8 w-8 text-gray-300" />
-          <p className="text-sm text-gray-400">No courses match your search.</p>
+        <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-gray-200 bg-white/40 backdrop-blur-sm py-16 text-center">
+          <FileText className="mb-3 h-10 w-10 text-gray-300" />
+          <p className="text-base font-semibold text-gray-500">No courses match your active search filter.</p>
         </div>
       )}
 
       {/* Course cards */}
-      {filtered.map((course) => (
-        <div
-          key={course.id}
-          className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md sm:flex-row sm:items-center"
-        >
-          {/* Icon */}
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
-            <BookOpen className="h-6 w-6 text-indigo-500" />
-          </div>
-
-          {/* Info */}
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3
-                className="cursor-pointer text-[14px] font-semibold text-gray-800 hover:text-indigo-600 transition-colors"
-                onClick={() => navigate(`/instructor/courses/${course.id}`)}
-              >
-                {course.title}
-              </h3>
-              {/* Published badge */}
-              {course.published ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-200">
-                  <CheckCircle2 className="h-3 w-3" />
-                  Published
-                </span>
+      <div className={cn(
+        viewMode === "kanban" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"
+      )}>
+        {filtered.map((course) => (
+          <div
+            key={course.id}
+            className={cn(
+              "group flex gap-4 rounded-3xl border border-white/80 bg-white/80 backdrop-blur-xl p-5 shadow-xl shadow-indigo-900/5 transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-indigo-900/10",
+              viewMode === "kanban" ? "flex-col" : "flex-col sm:flex-row sm:items-center"
+            )}
+          >
+            {/* Icon / Thumbnail */}
+            <div className={cn(
+              "shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-50 text-indigo-500 shadow-inner border border-white overflow-hidden",
+              viewMode === "kanban" ? "h-40 w-full flex relative" : "h-16 w-16 flex"
+            )}>
+              {course.image_url ? (
+                <img src={course.image_url} alt={course.title} className="w-full h-full object-cover" />
               ) : (
-                <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500 ring-1 ring-gray-200">
-                  <Circle className="h-3 w-3" />
-                  Draft
-                </span>
+                <BookOpen className={viewMode === "kanban" ? "h-16 w-16 absolute opacity-50" : "h-8 w-8"} />
               )}
             </div>
 
-            {/* Meta row */}
-            <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-gray-400">
-              {course.category && (
-                <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-600 ring-1 ring-inset ring-indigo-200">
-                  {course.category}
-                </span>
-              )}
-              {course.level && (
-                <span className="capitalize">{course.level}</span>
-              )}
-              <span>{course.total_lessons} lesson{course.total_lessons !== 1 ? "s" : ""}</span>
+            {/* Info */}
+            <div className="min-w-0 flex-1 flex flex-col justify-center">
+              <div className="flex flex-wrap items-center gap-3 mb-1.5">
+                <h3
+                  className="cursor-pointer text-[17px] font-extrabold text-gray-900 hover:text-indigo-600 transition-colors leading-tight"
+                  onClick={() => navigate(`/instructor/courses/${course.id}`)}
+                >
+                  {course.title}
+                </h3>
+                {/* Published badge */}
+                {course.published ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-700 border border-emerald-100">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Published
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-slate-500 border border-slate-200">
+                    <Circle className="h-3 w-3" />
+                    Draft
+                  </span>
+                )}
+              </div>
+
+              {/* Meta row */}
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+                {course.category && (
+                  <span className="rounded-md bg-indigo-50 text-indigo-600 px-2 py-0.5 border border-indigo-100">
+                    {course.category}
+                  </span>
+                )}
+                {course.level && (
+                  <span className="rounded-md bg-gray-50 text-gray-500 px-2 py-0.5 border border-gray-100">
+                    {course.level}
+                  </span>
+                )}
+                <span className="bg-white/50 px-2 py-0.5 rounded-md border border-gray-100">{course.total_lessons} Mod{course.total_lessons !== 1 ? "s" : ""}</span>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className={cn(
+              "flex shrink-0 gap-3",
+              viewMode === "kanban" ? "mt-4 pt-4 border-t border-gray-100/60 justify-between w-full" : "mt-4 sm:mt-0"
+            )}>
+              <button
+                onClick={() => handleShare(course)}
+                className="group/btn flex flex-1 sm:flex-none justify-center items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all shadow-sm"
+              >
+                <Share2 className="h-4 w-4 text-gray-400 group-hover/btn:text-indigo-500" />
+                Share
+              </button>
+              <button
+                onClick={() => navigate(`/instructor/courses/${course.id}`)}
+                className="flex flex-1 sm:flex-none justify-center items-center gap-2 rounded-xl bg-gradient-to-r from-gray-900 to-gray-800 px-5 py-2.5 text-sm font-extrabold text-white hover:from-gray-800 hover:to-gray-700 transition-all shadow-lg shadow-gray-900/20"
+              >
+                <Pencil className="h-4 w-4 text-gray-300" />
+                Manage
+              </button>
             </div>
           </div>
-
-          {/* Actions */}
-          <div className="flex shrink-0 gap-2">
-            <button
-              onClick={() => handleShare(course)}
-              className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-[12px] text-gray-600 hover:bg-gray-100 transition-colors"
-            >
-              <Share2 className="h-3.5 w-3.5" />
-              Share
-            </button>
-            <button
-              onClick={() => navigate(`/instructor/courses/${course.id}`)}
-              className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-indigo-700 transition-colors shadow-sm"
-            >
-              <Pencil className="h-3.5 w-3.5" />
-              Edit
-            </button>
-          </div>
-        </div>
-      ))}
-
-      {/* FAB */}
-      <button
-        onClick={() => setCreateOpen(true)}
-        className="fixed bottom-8 right-8 flex h-14 w-14 items-center justify-center rounded-full bg-indigo-600 text-white shadow-lg transition hover:scale-105 hover:bg-indigo-700"
-        title="Create new course"
-      >
-        <Plus className="h-7 w-7" />
-      </button>
+        ))}
+      </div>
 
       {/* Create dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md border-0 bg-white/95 backdrop-blur-2xl shadow-2xl rounded-3xl">
           <DialogHeader>
-            <DialogTitle>Create New Course</DialogTitle>
-            <DialogDescription>Give your course a title to get started.</DialogDescription>
+            <DialogTitle className="text-xl font-bold text-gray-900 tracking-tight">Create Premium Course</DialogTitle>
+            <DialogDescription className="text-gray-500">Provide a stunning title for your new curriculum.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 pt-1">
+          <div className="space-y-4 pt-4">
             <Input
               autoFocus
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
-              placeholder="e.g. React for Beginners"
+              placeholder="e.g. Next.js App Router Masterclass"
               onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+              className="h-14 rounded-2xl border-gray-200 bg-white text-gray-900 placeholder:text-gray-300 focus-visible:border-indigo-500 focus-visible:ring-4 focus-visible:ring-indigo-500/20 text-base shadow-sm font-medium"
             />
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="ghost" className="h-12 rounded-xl text-gray-500 hover:text-gray-900 font-bold" onClick={() => setCreateOpen(false)}>Cancel</Button>
               <Button
                 onClick={handleCreate}
                 disabled={!newTitle.trim() || creating}
-                className="bg-indigo-600 hover:bg-indigo-700"
+                className="h-12 rounded-xl px-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-extrabold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg shadow-indigo-600/25"
               >
-                {creating ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : null}
-                {creating ? "Creating…" : "Create"}
+                {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                {creating ? "Forging…" : "Create Course"}
               </Button>
             </div>
           </div>

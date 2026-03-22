@@ -119,6 +119,9 @@ export const submitQuiz = (
   payload: { quiz_id: string; answers: { option_id: string }[] }
 ) => request<any>("/quiz/submit", { method: "POST", token, body: payload });
 
+export const getQuizAttempt = (token: string, quizId: string) =>
+  request<any>(`/quiz/attempt/${quizId}`, { token }).then((r) => r.data ?? r);
+
 export const getQuiz = (id: string) =>
   request<any>(`/quiz/${id}`);
 
@@ -188,6 +191,7 @@ export const api = {
   getCourseQuizzes,
   submitQuiz,
   getQuiz,
+  getQuizAttempt,
   createQuiz,
   addQuizQuestion,
   addQuizOption,

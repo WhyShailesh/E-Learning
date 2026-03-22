@@ -14,7 +14,7 @@ export const getMyCourses = async (req, res) => {
     const result = await pool.query(
       `SELECT DISTINCT ON (c.id)
          c.id, c.title, c.description, c.category, c.level,
-         c.price, c.thumbnail, c.published, c.is_published, c.tags,
+         c.price, c.thumbnail, c.image_url, c.published, c.is_published, c.tags,
          c.views_count, c.created_at,
          COALESCE(
            (SELECT COUNT(*) FROM lessons l WHERE l.course_id = c.id), 0
